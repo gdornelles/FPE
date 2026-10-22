@@ -5,6 +5,7 @@ Proposta de repartição do Fundo de Participação dos Estados a partir de 2027
 - `index.html`: página inicial, com as quatro opções
 - `painel.html`: painel interativo (regra atual → proposta, mapa, fundo, Congresso)
 - `cenas.html`: a proposta em 11 cenas animadas
+- `tablet/` e `celular/`: as mesmas três páginas otimizadas para toque (tablet: alvos maiores e painel em duas colunas; celular: uma coluna, etapas em carrossel, regras recolhidas e controles fixos embaixo)
 - `arquivos/FPE_proposta_fundo_compensacao.xlsx`: planilha com todos os cálculos
 - `arquivos/FPE_nova_formula_explicada.pdf`: explicação didática
 - `arquivos/A_Proposta_do_FPE_em_Cenas.pdf`: as cenas em PDF
