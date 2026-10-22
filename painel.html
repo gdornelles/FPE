@@ -1,0 +1,1127 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>Painel da Proposta do FPE</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: painel de premissas fixo à esquerda (empilha no celular) + coluna de resultados:
+   destaque RS → placar ganham/perdem → regiões → 27 UFs com barras divergentes. */
+:root{
+  --bg:#f3f5f4; --surface:#ffffff; --surface-2:#eaeeec; --line:#d3dad7;
+  --ink:#121a17; --ink-2:#4a5752; --ink-3:#74817c;
+  --accent:#145c48; --accent-ink:#ffffff; --accent-soft:#dcebe5;
+  --rs:#c99400; --rs-soft:#fbf1d2; --rs-line:#e6c25a;
+  --gain:#2a78d6; --gain-soft:#dce9fa; --loss:#d03b3b; --loss-soft:#f8dddd;
+  --zero:#c9cfcc;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111614; --surface:#18201d; --surface-2:#202a26; --line:#2f3b36;
+  --ink:#eef3f1; --ink-2:#b4c0bb; --ink-3:#83918b;
+  --accent:#5fbf9c; --accent-ink:#0c1512; --accent-soft:#1f3a31;
+  --rs:#f0c040; --rs-soft:#3a3218; --rs-line:#8a7124;
+  --gain:#3987e5; --gain-soft:#1b2d44; --loss:#e66767; --loss-soft:#432222;
+  --zero:#3c4844; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111614; --surface:#18201d; --surface-2:#202a26; --line:#2f3b36;
+  --ink:#eef3f1; --ink-2:#b4c0bb; --ink-3:#83918b;
+  --accent:#5fbf9c; --accent-ink:#0c1512; --accent-soft:#1f3a31;
+  --rs:#f0c040; --rs-soft:#3a3218; --rs-line:#8a7124;
+  --gain:#3987e5; --gain-soft:#1b2d44; --loss:#e66767; --loss-soft:#432222;
+  --zero:#3c4844; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.45}
+.wrap{max-width:1380px;margin:0 auto;padding-inline:20px;padding-block:20px 48px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-display);font-weight:600;font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.muted{color:var(--ink-3)}
+.pos{color:var(--gain)} .neg{color:var(--loss)}
+
+header.top{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between;padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:18px}
+header.top h1{font-size:28px;font-weight:700;letter-spacing:-.01em}
+header.top p{margin:4px 0 0;color:var(--ink-2);max-width:70ch}
+.basis{display:flex;flex-direction:column;gap:6px;min-width:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg button{all:unset;cursor:pointer;padding:7px 12px;font-family:var(--f-display);font-weight:600;font-size:13px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+.grid{display:grid;grid-template-columns:320px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------- painel ---------- */
+aside.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:16px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+@media (max-width:980px){aside.panel{position:static}}
+.panel h2{font-size:15px;font-weight:700}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.preset{all:unset;cursor:pointer;font-size:12.5px;padding:5px 9px;border-radius:5px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink)}
+.preset:hover{border-color:var(--accent)}
+.preset[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink);font-weight:600}
+.preset:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ctl label{font-weight:600;font-size:13px}
+.ctl .val{font-family:var(--f-mono);font-size:13px;font-weight:600}
+.ctl .law{font-size:11.5px;color:var(--ink-3)}
+.ctl.changed label::after{content:" ●";color:var(--accent);font-size:10px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=range]:disabled{opacity:.45}
+select,input[type=number]{width:100%;font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--ink)}
+select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.sep{height:1px;background:var(--line);margin:2px 0}
+.note{font-size:12px;color:var(--ink-2);background:var(--surface-2);border-radius:6px;padding:8px 10px}
+.note.warn{background:var(--loss-soft);color:var(--ink)}
+.reset{all:unset;cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:13px;color:var(--accent);text-align:center;padding:6px;border:1px dashed var(--line);border-radius:6px}
+.reset:focus-visible{outline:2px solid var(--accent)}
+.optbox{display:grid;gap:8px}
+.purebtn.opt{background:var(--c-sit,#7a4fc0);color:#fff}
+.optres{font-size:12px;line-height:1.45;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--surface-2)}
+.optres h4{margin:0 0 6px;font-family:var(--f-display);font-size:12.5px}
+.optres ol{margin:0 0 8px;padding-left:18px}.optres li{margin:2px 0}
+.optres .ok{color:var(--pos,#1c5cab);font-weight:600}.optres .no{color:var(--neg,#c0392b);font-weight:600}
+.optres .pick{border-top:1px solid var(--line);padding-top:7px;margin-top:7px}
+.optres .pick b{font-family:var(--f-mono)}
+.optres button{all:unset;cursor:pointer;font-weight:600;color:var(--accent);border:1px dashed var(--line);border-radius:5px;padding:3px 7px;margin:4px 6px 0 0;font-size:11.5px}
+.optres button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink,#fff);border-style:solid}
+
+/* ---------- resultados ---------- */
+main{display:flex;flex-direction:column;gap:18px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.card h2{font-size:17px;font-weight:700}
+.card-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 16px;margin-bottom:12px}
+.card-head p{margin:0;color:var(--ink-3);font-size:12.5px}
+
+.hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px}
+@media (max-width:760px){.hero{grid-template-columns:minmax(0,1fr)}}
+.rs{border:1px solid var(--rs-line);background:linear-gradient(0deg,var(--surface),var(--surface)) padding-box;position:relative;overflow:hidden}
+.rs::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--rs)}
+.rs .flagline{display:flex;align-items:center;gap:8px}
+.rs .tag{font-family:var(--f-display);font-weight:700;font-size:12px;background:var(--rs-soft);color:var(--ink);border:1px solid var(--rs-line);border-radius:4px;padding:1px 6px}
+.rs-main{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 28px;margin-top:10px}
+.big{font-family:var(--f-mono);font-size:44px;font-weight:600;line-height:1;letter-spacing:-.02em}
+.big small{font-size:20px;font-weight:500}
+.delta-chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-weight:600;font-size:15px;padding:4px 10px;border-radius:5px}
+.delta-chip.pos{background:var(--gain-soft);color:var(--gain)}
+.delta-chip.neg{background:var(--loss-soft);color:var(--loss)}
+.delta-chip.zero{background:var(--surface-2);color:var(--ink-2)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 18px;margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.kv div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.kv b{font-family:var(--f-mono);font-size:15px;font-weight:600}
+.kv span{font-size:11.5px;color:var(--ink-3)}
+
+.score{display:flex;flex-direction:column;gap:12px}
+.view{display:flex;flex-direction:column;gap:18px;min-width:0}.view[hidden]{display:none}
+.vtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;position:sticky;top:0;z-index:5;background:var(--bg)}
+.vtab{all:unset;cursor:pointer;padding:10px 16px 9px;font-family:var(--f-display);font-weight:600;font-size:14px;color:var(--ink-2);border-bottom:3px solid transparent;white-space:nowrap}
+.vtab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.vtab:focus-visible{outline:2px solid var(--accent)}
+.hero1{grid-template-columns:minmax(0,1fr)}
+.map-score{border-bottom:1px solid var(--line);padding-bottom:12px}
+.map text.val{font-size:11px;font-weight:600}
+.map text.val.rs{font-size:13px}
+.map line.lead{stroke:var(--ink-3);stroke-width:.8}
+.map text.call{font-size:12px;paint-order:stroke;stroke-width:3px}
+.map text.call .cv{font-weight:500}
+.tally{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tile{border-radius:7px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;border:1px solid var(--line)}
+.tile .n{font-family:var(--f-mono);font-size:32px;font-weight:600;line-height:1.05}
+.tile .l{font-family:var(--f-display);font-weight:600;font-size:13px}
+.tile.g{background:var(--gain-soft);border-color:transparent} .tile.g .n{color:var(--gain)}
+.tile.p{background:var(--loss-soft);border-color:transparent} .tile.p .n{color:var(--loss)}
+.tile.z .n{color:var(--ink-2)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-family:var(--f-mono);font-size:11.5px;font-weight:600;padding:1px 5px;border-radius:3px;border:1px solid var(--line);color:var(--ink-2);background:var(--surface)}
+.chip.g{border-color:var(--gain);color:var(--gain)}
+.chip.p{border-color:var(--loss);color:var(--loss)}
+.chip.rs{background:var(--rs-soft);border-color:var(--rs-line);color:var(--ink)}
+.chips-row{display:grid;grid-template-columns:74px minmax(0,1fr);gap:6px 8px;align-items:start;font-size:12px}
+.chips-row > span{color:var(--ink-3);padding-top:2px}
+.senate{font-size:12.5px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:10px}
+.senate b{font-family:var(--f-mono);color:var(--ink)}
+:root{--c-sit:#7a4fc0;--c-opo:#e0922f;--c-neu:#a3aca9}
+.ctitle{font-family:var(--f-display);font-weight:600;font-size:12.5px;color:var(--ink);margin-bottom:6px}
+.crow{margin:8px 0 10px}
+.ch{display:flex;justify-content:space-between;gap:8px;font-size:12px}.ch span{color:var(--ink-3)}
+.cbar{position:relative;display:flex;height:12px;margin:4px 0 4px;background:var(--surface-2);border-radius:3px;overflow:visible}
+.cbar span{display:block;height:100%}.cbar span:first-child{border-radius:3px 0 0 3px}
+.cs{background:var(--c-sit)}.co{background:var(--c-opo)}.cn{background:var(--c-neu)}
+.cbar i{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);margin-left:-1px}
+.cl{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;font-size:12px}
+.cl em{font-style:normal;font-weight:600;margin-left:4px}
+.mix{color:var(--ink-2)}.mix i{display:inline-block;width:8px;height:8px;border-radius:2px;margin:0 3px 0 6px;vertical-align:0}
+.ds{background:var(--c-sit)}.do{background:var(--c-opo)}.dn{background:var(--c-neu)}
+.cg-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink-2);margin:4px 0 10px}
+.cg-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.ptab{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:8px;margin-bottom:6px}
+.pc{border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:var(--surface);display:grid;gap:3px;font-size:12px}
+.pc.S{border-left:4px solid var(--c-sit)}.pc.O{border-left:4px solid var(--c-opo)}.pc.N{border-left:4px solid var(--c-neu)}
+.pc .t{display:flex;justify-content:space-between;gap:6px}.pc .t b{font-size:13px}
+.pc .m{color:var(--ink-3);font-size:11px;line-height:1.3}
+.pc select,.cgl select{font:inherit;font-size:12px;padding:2px 4px}
+.pc .t select{width:104px;flex:none}.pc .t{align-items:center}
+.cgl td{font-family:inherit}
+.pc.ch2{box-shadow:0 0 0 2px var(--c-base) inset}
+#cgTbl td,#cgTbl th{white-space:nowrap}
+#cgTbl .sp{font-family:var(--f-mono);font-size:12px}
+#cgTbl .sp .s{color:var(--c-sit);font-weight:600}#cgTbl .sp .o{color:var(--c-opo);font-weight:600}#cgTbl .sp .n{color:var(--ink-3)}
+.mini{display:flex;width:120px;height:9px;border-radius:2px;overflow:hidden;background:var(--surface-2)}
+.mini span{display:block;height:100%}
+.cg-tools{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:end;margin:6px 0 8px}
+.cgl{width:100%;border-collapse:collapse;font-size:12.5px}
+.cgl td,.cgl th{padding:5px 6px;border-bottom:1px solid var(--line);text-align:left}
+.cgl tr.ov td{background:color-mix(in srgb,var(--c-base) 8%,transparent)}
+.badge{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:9px;color:#fff}
+.badge.S{background:var(--c-sit)}.badge.O{background:var(--c-opo)}.badge.N{background:var(--c-neu);color:#1b1f1e}
+
+/* tabelas com barras divergentes */
+.tbl-scroll{overflow-x:auto;margin-inline:-4px;padding-inline:4px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-family:var(--f-display);font-weight:600;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+td.name{font-family:var(--f-body);font-weight:500}
+td.name .reg{font-family:var(--f-display);font-size:11px;color:var(--ink-3);margin-left:6px;letter-spacing:.04em}
+td.barcell{width:34%;min-width:170px;padding-inline:4px}
+tr.row-rs td{background:var(--rs-soft)}
+tr.row-rs td.name{font-weight:700}
+tr.row-rs td:first-child{box-shadow:inset 4px 0 0 var(--rs)}
+tr.total td{font-weight:600;background:var(--surface-2)}
+tbody tr:hover td{background:var(--surface-2)}
+tbody tr.row-rs:hover td{background:var(--rs-soft)}
+.dbar{position:relative;height:16px}
+.dbar .axis{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--ink-3);opacity:.6}
+.dbar .b{position:absolute;top:2px;height:12px}
+.dbar .b.pos{left:50%;background:var(--gain);border-radius:0 3px 3px 0}
+.dbar .b.neg{right:50%;background:var(--loss);border-radius:3px 0 0 3px}
+.sortbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sortbar select{width:auto}
+@media (max-width:640px){.hide-sm{display:none}}
+
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--ink-2);margin-top:10px}
+.legend i{display:inline-block;width:12px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+
+#tip{position:fixed;z-index:20;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:7px;box-shadow:0 6px 24px rgba(0,0,0,.18);padding:10px 12px;font-size:12px;min-width:220px;max-width:280px}
+#tip h4{margin:0 0 6px;font-family:var(--f-display);font-size:14px}
+#tip dl{display:grid;grid-template-columns:1fr auto;gap:2px 12px;margin:0}
+#tip dt{color:var(--ink-3)} #tip dd{margin:0;font-family:var(--f-mono);text-align:right}
+
+footer{margin-top:22px;font-size:12px;color:var(--ink-3);display:flex;flex-direction:column;gap:6px;max-width:110ch}
+footer a{color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){.dbar .b{transition:width .25s ease}}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:18px;overflow-x:auto}
+.tab{all:unset;cursor:pointer;padding:10px 16px 9px;font-family:var(--f-display);font-weight:600;font-size:15px;color:var(--ink-2);border-bottom:3px solid transparent;white-space:nowrap;display:flex;flex-direction:column;gap:1px}
+.tab small{font-family:var(--f-body);font-weight:400;font-size:11.5px;color:var(--ink-3)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:10px;align-items:center}
+.pair input[type=number]{text-align:right;font-family:var(--f-mono)}
+.formula{font-family:var(--f-mono);font-size:12px;line-height:1.55;background:var(--surface-2);border-radius:6px;padding:10px 12px;color:var(--ink)}
+.formula em{font-style:normal;color:var(--accent);font-weight:600}
+.fixed{display:grid;grid-template-columns:1fr auto;gap:3px 10px;font-size:12px;color:var(--ink-2)}
+.fixed b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+header.top{margin-bottom:12px}
+
+/* mapa */
+:root{--m-n2:#8c1c1c;--m-n1:#ef9f99;--m-0:#e3e6e4;--m-p1:#a6c6f1;--m-p2:#153e86;--m-stroke:#ffffff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--m-n2:#f06a6a;--m-n1:#7d3535;--m-0:#38403d;--m-p1:#2c4a77;--m-p2:#72aef7;--m-stroke:#18201d}}
+:root[data-theme="dark"]{--m-n2:#f06a6a;--m-n1:#7d3535;--m-0:#38403d;--m-p1:#2c4a77;--m-p2:#72aef7;--m-stroke:#18201d}
+.mapwrap{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:820px){.mapwrap{grid-template-columns:minmax(0,1fr)}}
+.map svg{width:100%;height:auto;max-height:680px;display:block}
+.map path.st{stroke:var(--m-stroke);stroke-width:.9;stroke-linejoin:round;cursor:pointer;outline:none}
+.map path.st:hover,.map path.st:focus-visible{stroke:var(--ink);stroke-width:1.6}
+.map path.rsline{fill:none;stroke:var(--rs);stroke-width:2.6;pointer-events:none}
+.map text{font-family:var(--f-mono);font-size:12px;font-weight:600;pointer-events:none;paint-order:stroke;stroke-width:2.4px;stroke-linejoin:round}
+.map text.rs{font-size:14px}
+@media (prefers-reduced-motion:no-preference){.map path.st{transition:fill .25s ease}}
+.mside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.ramp{height:14px;border-radius:3px;border:1px solid var(--line)}
+.ramp-lbl{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2);margin-top:4px}
+.ramp-cap{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink-3)}
+.mopts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mopts label{font-size:11.5px;color:var(--ink-3);display:flex;flex-direction:column;gap:3px}
+.extremes{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;font-size:12.5px;align-items:baseline}
+.extremes .sw{width:12px;height:12px;border-radius:2px;border:1px solid var(--line)}
+.extremes b{font-family:var(--f-mono);font-weight:600}
+
+/* fórmula sem limitadores */
+.purebox{display:flex;flex-direction:column;gap:8px}
+.purebtn{all:unset;cursor:pointer;text-align:center;font-family:var(--f-display);font-weight:600;font-size:13.5px;padding:9px 12px;border-radius:6px;background:var(--accent);color:var(--accent-ink)}
+.purebtn[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.purebtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.purebtn.alt{background:var(--surface-2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.purebtn.alt:hover{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.banner{font-size:12.5px;background:var(--rs-soft);border:1px solid var(--rs-line);border-radius:6px;padding:8px 10px;color:var(--ink)}
+.tabs.dim .tab{opacity:.45}
+/* transição */
+.tr-hero{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+@media (max-width:760px){.tr-hero{grid-template-columns:minmax(0,1fr)}}
+.tr-cell{border:1px solid var(--line);border-radius:7px;padding:12px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tr-cell.now{background:var(--surface-2)}
+.tr-cell .v{font-family:var(--f-mono);font-size:26px;font-weight:600;line-height:1.1}
+.tr-cell .s{font-size:12px;color:var(--ink-3)}
+.stack{display:flex;height:12px;border-radius:3px;overflow:hidden;margin-top:6px;border:1px solid var(--line)}
+.stack span{display:block;height:100%}
+.stack .old{background:var(--c-base)} .stack .exc{background:var(--c-exc)}
+.stack-lbl{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--ink-2)}
+.xbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin-bottom:14px}
+@media (max-width:640px){.xbar{grid-template-columns:minmax(0,1fr)}}
+.xchips{display:flex;flex-wrap:wrap;gap:6px}
+.xchips button{all:unset;cursor:pointer;font-size:12px;padding:4px 8px;border-radius:5px;border:1px solid var(--line);background:var(--surface-2)}
+.xchips button:hover{border-color:var(--accent)}
+.xchips button:focus-visible{outline:2px solid var(--accent)}
+.xin{display:flex;align-items:center;gap:8px}
+.xin input{width:110px;text-align:right;font-family:var(--f-mono)}
+.trin{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:10px 14px;align-items:end;margin-bottom:10px}
+@media (max-width:760px){.trin{grid-template-columns:minmax(0,1fr)}}
+.trin input{font-family:var(--f-mono);text-align:right}
+.tr-rule{font-size:12.5px;margin:0 0 8px;padding:7px 10px;border-radius:6px;background:var(--surface-2);color:var(--ink)}
+.tr-rule.mod{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.tr-split{font-size:13px;margin:0 0 12px;color:var(--ink-2)}
+.tr-split b{font-family:var(--f-mono);color:var(--ink)}
+#trTbl tr.reg td{font-weight:600;background:var(--surface-2)}
+.tr-sum{font-size:12.5px;color:var(--ink-2);margin-top:10px}
+.tr-sum b{font-family:var(--f-mono);color:var(--ink)}
+td.oldshare{min-width:84px}
+#trTbl{font-size:12px}
+#trTbl th{font-size:10.5px;letter-spacing:.03em;padding:6px 5px;white-space:normal;vertical-align:bottom}
+#trTbl td{padding:5px 5px}
+#trTbl td.name .reg{display:none}
+.mini{display:flex;height:8px;border-radius:2px;overflow:hidden;background:var(--surface-2);margin-top:3px}
+.mini span{display:block;height:100%}
+
+:root{--c-b26:#6f7d78;--c-e26:#c3cbc8;--c-base:#1c5cab;--c-exc:#86b6ef;--c-half:#eb6834;--c-full:#4a3aa7;--c-sim:#1baf7a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--c-b26:#8d9a95;--c-e26:#4b5753;--c-base:#3987e5;--c-exc:#9ec5f4;--c-half:#d95926;--c-full:#9085e9;--c-sim:#199e70}}
+:root[data-theme="dark"]{--c-b26:#8d9a95;--c-e26:#4b5753;--c-base:#3987e5;--c-exc:#9ec5f4;--c-half:#d95926;--c-full:#9085e9;--c-sim:#199e70}
+.tr-tools{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 18px;margin:4px 0 10px}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2)}
+.trchart{display:grid;grid-template-columns:minmax(110px,145px) minmax(130px,1fr) repeat(6,auto);column-gap:11px;min-width:760px;font-size:12.5px}
+.trchart .hd{font-family:var(--f-display);font-weight:600;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);padding:4px 0 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.trchart .hd.l{text-align:left}
+.trchart .c{padding:6px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;align-items:flex-end;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.trchart .c.nm{align-items:flex-start;font-family:var(--f-body);font-weight:500}
+.trchart .c.nm small{font-family:var(--f-display);color:var(--ink-3);font-size:11px}
+.trchart .c small.r{font-family:var(--f-mono);font-size:10.5px;color:var(--ink-3)}
+.trchart .c.bars{align-items:stretch;gap:2px}
+.trchart .bl{display:flex;height:7px;border-radius:0 2px 2px 0}
+.trchart .bl span{display:block;height:100%}
+.trchart .bl span:last-child{border-radius:0 2px 2px 0}
+.trchart .isrs{background:var(--rs-soft)}
+.trchart .isrs.nm{box-shadow:inset 4px 0 0 var(--rs);padding-left:8px;font-weight:700}
+.trchart .big{font-size:13.5px;font-weight:600}
+.tr-hero.tr4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:980px){.tr-hero.tr4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.tr-hero.tr4{grid-template-columns:minmax(0,1fr)}}
+.stack .b26{background:var(--c-b26)} .stack .e26{background:var(--c-e26)}
+.tr-calc{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 16px;align-items:end;border:1px solid var(--rs-line);background:var(--rs-soft);border-radius:7px;padding:12px 14px;margin:0 0 14px}
+.tr-calc .k{display:flex;flex-direction:column;gap:2px;min-width:0}
+.tr-calc .k span{font-size:11.5px;color:var(--ink-2)}
+.tr-calc .k b{font-family:var(--f-mono);font-size:16px;font-weight:600}
+.tr-calc .eq{grid-column:1/-1;font-family:var(--f-mono);font-size:13px;line-height:1.6;border-top:1px solid var(--rs-line);padding-top:8px;overflow-wrap:anywhere}
+.tr-calc .eq em{font-style:normal;font-weight:600}
+.tr-calc .ttl{grid-column:1/-1;font-family:var(--f-display);font-weight:700;font-size:14px}
+.tr-h3{font-size:15px;font-weight:700;margin:18px 0 6px}
+.tr-prem{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.tr-prem summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:13px;color:var(--ink-2)}
+.tr-prem .trin{margin-top:10px}
+
+/* ---------- painel da proposta ---------- */
+:root{--q0:#e4ece8;--q1:#145c48}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--q0:#26302c;--q1:#7fd3b2}}
+:root[data-theme="dark"]{--q0:#26302c;--q1:#7fd3b2}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.journey{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:980px){.journey{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.journey{grid-template-columns:minmax(0,1fr)}}
+.step{all:unset;box-sizing:border-box;cursor:pointer;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0;position:relative}
+.step:hover{border-color:var(--accent)}
+.step:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.step[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent);background:var(--accent-soft)}
+.step .no{font-family:var(--f-display);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.step .tt{font-family:var(--f-display);font-weight:700;font-size:16px;color:var(--ink)}
+.step .ss{font-size:12px;color:var(--ink-3);line-height:1.3}
+.step .rsv{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:6px;padding-top:8px;border-top:1px solid var(--line)}
+.step .rsv b{font-family:var(--f-mono);font-size:20px;font-weight:600}
+.step .rsv span{font-family:var(--f-mono);font-size:12.5px;font-weight:600}
+.step .rsv em{font-style:normal;font-size:11px;color:var(--ink-3);width:100%}
+.step.final .tt::after{content:" ★";color:var(--rs)}
+.cta{all:unset;box-sizing:border-box;cursor:pointer;text-align:center;font-family:var(--f-display);font-weight:700;font-size:16px;padding:12px 14px;border-radius:7px;background:var(--rs);color:#1b1500;box-shadow:0 1px 0 rgba(0,0,0,.08)}
+.cta:hover{filter:brightness(1.05)}
+.cta:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.cta[aria-pressed="true"]{background:var(--rs-soft);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--rs-line)}
+.story{font-size:13px;line-height:1.5;background:var(--surface-2);border-radius:6px;padding:10px 12px;color:var(--ink)}
+.story b{font-family:var(--f-mono);font-weight:600}
+.ctl.off{opacity:.5}
+.fundtiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.fundtiles{grid-template-columns:minmax(0,1fr)}}
+.ft{border:1px solid var(--line);border-radius:7px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.ft .n{font-family:var(--f-mono);font-size:24px;font-weight:600;line-height:1.1}
+.ft .l{font-family:var(--f-display);font-weight:600;font-size:13px}
+.ft .s{font-size:11.5px;color:var(--ink-3)}
+.ft.in{background:var(--gain-soft);border-color:transparent}.ft.in .n{color:var(--gain)}
+.ft.out{background:var(--loss-soft);border-color:transparent}.ft.out .n{color:var(--loss)}
+.ft.rest{background:var(--rs-soft);border-color:var(--rs-line)}
+.prose{max-width:78ch;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.prose p{margin:0}
+.analogy{border-left:4px solid var(--rs);background:var(--rs-soft);border-radius:0 6px 6px 0;padding:10px 12px;font-size:13.5px}
+.analogy b{font-family:var(--f-display)}
+.rules{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.rules li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:center;background:var(--surface-2);border-radius:6px;padding:8px 10px 8px 0;font-size:13.5px}
+.rules li span.k{display:flex;align-items:center;justify-content:center;align-self:stretch;background:var(--accent);color:var(--accent-ink);font-family:var(--f-mono);font-weight:600;font-size:15px;border-radius:6px 0 0 6px;margin:-8px 0}
+.flow{display:grid;grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr) 34px minmax(0,1fr);gap:6px;align-items:center;margin:4px 0}
+@media (max-width:760px){.flow{grid-template-columns:minmax(0,1fr)}.flow .arr{transform:rotate(90deg);justify-self:center}}
+.flow .col{display:flex;flex-direction:column;gap:8px}
+.fb{border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;font-size:12.5px;line-height:1.35}
+.fb b{font-family:var(--f-display);font-size:14px}
+.fb .n{font-family:var(--f-mono);font-weight:600;font-size:15px}
+.fb.g{background:var(--gain-soft);box-shadow:inset 4px 0 0 var(--gain)}
+.fb.l{background:var(--loss-soft);box-shadow:inset 4px 0 0 var(--loss)}
+.fb.f{background:var(--accent);color:var(--accent-ink)}
+.fb.r{background:var(--surface-2);box-shadow:inset 4px 0 0 var(--ink-3)}
+.arr{font-family:var(--f-mono);font-size:22px;color:var(--ink-3);text-align:center}
+.bases{display:grid;gap:12px;margin:6px 0 4px}
+.bases .lab{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12.5px}
+.bases .lab b{font-family:var(--f-display);font-size:13.5px}
+.bases .track{position:relative;height:16px;background:var(--surface-2);border-radius:3px;margin-top:4px}
+.bases .base{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.bases .slice{position:absolute;inset:0 auto 0 0;border-radius:3px 0 0 3px}
+.bases .g .base{background:var(--gain-soft)} .bases .g .slice{background:var(--gain)}
+.bases .l .base{background:var(--loss-soft)} .bases .l .slice{background:var(--loss)}
+.bases .cap{font-family:var(--f-mono);font-size:12px;color:var(--ink-2);margin-top:3px}
+table.conta td:first-child{font-family:var(--f-body);white-space:normal}
+table.conta tr.eq td{font-weight:600;background:var(--surface-2)}
+table.conta tr.fin td{font-weight:700;background:var(--rs-soft)}
+table.ex td{white-space:normal}
+table.ex td.what{text-align:left;font-family:var(--f-body);color:var(--ink-2);min-width:200px}
+.exsel{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.exsel select{width:auto}
+.tag2{font-family:var(--f-display);font-size:11px;font-weight:600;padding:1px 6px;border-radius:9px;background:var(--surface-2);color:var(--ink-2);margin-left:6px;letter-spacing:.02em}
+.tag2.small{background:var(--accent-soft);color:var(--ink)}
+.ok{color:var(--gain);font-weight:600}.no{color:var(--loss);font-weight:600}
+.statusline{font-size:12.5px;border-radius:6px;padding:8px 10px;background:var(--surface-2)}
+.statusline.bad{background:var(--loss-soft)}
+.regshares{display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center;font-size:12.5px}
+.regshares .rb{height:9px;border-radius:2px;background:var(--q1)}
+.regshares b{font-family:var(--f-mono);font-weight:600}
+
+
+
+.sitenav{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;font-family:var(--f-display);font-weight:600;font-size:13px;margin-bottom:14px}
+.sitenav a{color:var(--accent);text-decoration:none}
+.sitenav a:hover{text-decoration:underline}
+.sitenav .files{display:flex;flex-wrap:wrap;gap:8px}
+.sitenav .files a{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:5px 10px;color:var(--ink)}
+.sitenav .files a:hover{border-color:var(--accent);text-decoration:none}
+</style>
+
+<div class="wrap">
+  <nav class="sitenav" aria-label="Navegação"><a href="index.html">← Início</a><span class="files"><a href="cenas.html">A proposta em cenas</a><a href="arquivos/FPE_proposta_fundo_compensacao.xlsx" download>Planilha com os cálculos (.xlsx)</a><a href="arquivos/FPE_nova_formula_explicada.pdf" target="_blank" rel="noopener">Explicação didática (PDF)</a></span></nav>
+  <header class="top">
+    <div>
+      <div class="eyebrow">Fundo de Participação dos Estados · proposta para 2027</div>
+      <h1>Painel da Proposta do FPE</h1>
+      <p>Da regra atual à proposta, em quatro etapas: como o FPE é dividido hoje, o que acontece se nada for aprovado, a fórmula corrigida e a proposta com o fundo de compensação. Dados do IBGE de 2025 e cálculos da planilha <span class="num">FPE_proposta_fundo_compensacao.xlsx</span>.</p>
+    </div>
+  </header>
+
+  <div class="journey" id="journey" role="group" aria-label="Etapas: da regra atual à proposta"></div>
+
+  <div class="grid" id="app" style="margin-top:18px">
+    <aside class="panel" aria-label="Etapa e regras da proposta">
+      <div class="ctl">
+        <span class="eyebrow" id="stEyebrow"></span>
+        <h2 id="panelTitle"></h2>
+        <div class="formula" id="formula"></div>
+      </div>
+      <div class="story" id="story"></div>
+      <div class="purebox">
+        <button type="button" class="cta" id="ctaOn" aria-pressed="false">Ver a proposta</button>
+        <button type="button" class="purebtn alt" id="ctaOff">Voltar à regra atual</button>
+      </div>
+      <div class="sep"></div>
+      <div class="ctl">
+        <h2>Regras do fundo de compensação</h2>
+        <span class="law" id="rulesNote"></span>
+      </div>
+      <div class="ctl" data-k="perda">
+        <div class="ctl-head"><label for="perda">Perda máxima de cada UF</label><span class="val" id="perdaV"></span></div>
+        <input type="range" id="perda" min="0" max="0.15" step="0.005" aria-label="Perda máxima">
+        <span class="law">Proposta: 5% em relação à regra atual de 2027.</span>
+      </div>
+      <div class="ctl" data-k="popPeq">
+        <div class="ctl-head"><label for="popPeq">UF pequena: menos de</label><span class="val" id="popPeqV"></span></div>
+        <input type="range" id="popPeq" min="0" max="5000000" step="100000" aria-label="Limite de população da UF pequena">
+        <span class="law" id="popPeqHelp"></span>
+      </div>
+      <div class="ctl" data-k="perdaPeq">
+        <div class="ctl-head"><label for="perdaPeq">Perda máxima da UF pequena</label><span class="val" id="perdaPeqV"></span></div>
+        <input type="range" id="perdaPeq" min="0" max="0.10" step="0.005" aria-label="Perda máxima da UF pequena">
+        <span class="law">Proposta: 0% (não perde nada).</span>
+      </div>
+      <div class="ctl" data-k="ganho">
+        <div class="ctl-head"><label for="ganho">Ganho máximo de cada UF</label><span class="val" id="ganhoV"></span></div>
+        <input type="range" id="ganho" min="0.02" max="0.40" step="0.005" aria-label="Ganho máximo">
+        <span class="law">Proposta: 10%. O que passar disso vai para o fundo.</span>
+      </div>
+      <div class="statusline" id="fundStatus"></div>
+      <button type="button" class="reset" id="reset">Voltar às regras da proposta (−5%, 0%, +10%)</button>
+      <div class="sep"></div>
+      <div class="ctl">
+        <span class="eyebrow">Parâmetros fixos (lei atual)</span>
+        <div class="fixed">
+          <span>Peso população / renda</span><b>50% / 50%</b>
+          <span>Valor de referência (VR)</span><b>72% · R$ 1.667,43</b>
+          <span>Piso e teto da população</span><b>1,2% e 7%</b>
+          <span>Coeficiente mínimo</span><b>0,5%</b>
+          <span>2027, regra atual: base / fórmula</span><b>64,43% / 35,57%</b>
+        </div>
+      </div>
+      <div id="panelNote" class="note"></div>
+    </aside>
+
+    <main>
+      <nav class="vtabs" role="tablist" aria-label="Seções do painel">
+        <button type="button" role="tab" class="vtab" data-view="geral" id="v-geral">Visão geral</button>
+        <button type="button" role="tab" class="vtab" data-view="como" id="v-como">Como funciona</button>
+        <button type="button" role="tab" class="vtab" data-view="ufs" id="v-ufs">Por UF e região</button>
+        <button type="button" role="tab" class="vtab" data-view="congresso" id="v-congresso">Congresso</button>
+      </nav>
+
+      <!-- ===================== VISÃO GERAL ===================== -->
+      <div class="view" data-view="geral" role="tabpanel" aria-labelledby="v-geral">
+        <section class="card" aria-labelledby="mapTitle">
+          <div class="card-head">
+            <h2 id="mapTitle"></h2>
+            <p id="mapSub"></p>
+          </div>
+          <div class="mapwrap">
+            <div class="map" id="map" role="img" aria-label="Mapa do Brasil por estado"></div>
+            <div class="mside">
+              <div class="score map-score" id="scoreBox">
+                <h3 class="tr-h3" id="scoreTitle" style="margin:0"></h3>
+                <div id="scoreBody"></div>
+                <div class="senate" id="senate"></div>
+              </div>
+              <div class="mopts" id="mopts">
+                <label>Medida<select id="mMetric"><option value="rel">Variação em %</option><option value="pp">Variação em p.p.</option></select></label>
+                <label>Escala<select id="mScale"><option value="fixed">Fixa</option><option value="auto">Ajustada à etapa</option></select></label>
+              </div>
+              <div>
+                <div class="ramp" id="ramp"></div>
+                <div class="ramp-lbl"><span id="rMin"></span><span id="rMid"></span><span id="rMax"></span></div>
+                <div class="ramp-cap" id="rCap"></div>
+              </div>
+              <div class="extremes" id="extremes"></div>
+              <p class="law" id="mNote" style="margin:0"></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="hero hero1">
+          <article class="card rs" aria-labelledby="rsTitle">
+            <div class="flagline"><span class="tag">RS</span><h2 id="rsTitle">Rio Grande do Sul</h2></div>
+            <div class="rs-main">
+              <div>
+                <div class="eyebrow" id="rsLbl"></div>
+                <div class="big" id="rsNew"></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <span class="eyebrow">contra a regra atual de 2027</span>
+                <span class="delta-chip" id="rsChip"></span>
+              </div>
+            </div>
+            <div class="kv">
+              <div><b id="rsK0"></b><span>Regra atual (2027)</span></div>
+              <div><b id="rsK1"></b><span>Se nada for aprovado</span></div>
+              <div><b id="rsK2"></b><span>Só a fórmula nova</span></div>
+              <div><b id="rsK3"></b><span>Proposta</span></div>
+              <div><b id="rsRank"></b><span id="rsRankLbl">Posição no ganho</span></div>
+              <div><b id="rsNNE"></b><span>Fatia de N/NE/CO na etapa</span></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="card" aria-labelledby="fundTitle" id="fundCard">
+          <div class="card-head">
+            <h2 id="fundTitle">O fundo de compensação</h2>
+            <p>Valores em pontos percentuais do FPE total.</p>
+          </div>
+          <div class="fundtiles">
+            <div class="ft in"><span class="l">Arrecadado</span><span class="n" id="ftIn"></span><span class="s" id="ftInS"></span></div>
+            <div class="ft out"><span class="l">Pago a quem perderia demais</span><span class="n" id="ftOut"></span><span class="s" id="ftOutS"></span></div>
+            <div class="ft rest"><span class="l" id="ftRestL">Sobra devolvida a todas as UFs</span><span class="n" id="ftRest"></span><span class="s" id="ftRestS"></span></div>
+          </div>
+          <p class="law" style="margin:10px 0 0" id="fundWhy"></p>
+        </section>
+      </div>
+
+      <!-- ===================== COMO FUNCIONA ===================== -->
+      <div class="view" data-view="como" role="tabpanel" aria-labelledby="v-como" hidden>
+        <section class="card">
+          <div class="card-head">
+            <h2>Estado usado nos exemplos</h2>
+            <div class="exsel"><label class="eyebrow" for="exUF">UF</label><select id="exUF"></select></div>
+          </div>
+          <div class="prose"><p>O FPE é um fundo federal formado por 21,5% do Imposto de Renda e do IPI (Constituição, art. 159, I, <i>a</i>), dividido entre os 26 estados e o Distrito Federal. Cada estado recebe uma fatia, o <b>coeficiente</b>. As fatias somam sempre 100%: quando a de um estado sobe, a de outro desce.</p></div>
+        </section>
+
+        <section class="card" aria-labelledby="c1">
+          <div class="card-head"><h2 id="c1">1. Como o FPE de 2027 é dividido pela regra atual</h2><p>Duas partes: fatias fixas de 1989 e fórmula de 2013.</p></div>
+          <div class="prose">
+            <p><b>Parte fixa (64,43%):</b> repartida pelas fatias do Anexo da Lei Complementar 62, de 1989, que nunca mudaram. <b>Parte variável (35,57%):</b> repartida pela fórmula de população e renda da LC 143, de 2013.</p>
+          </div>
+          <div class="tr-calc" id="calcNow" style="margin-top:12px"></div>
+          <div class="prose"><p>O STF manteve essas regras só até <b>30 de junho de 2027</b>, prazo que não será prorrogado (ADI 5.069). Sem lei nova, todo o FPE passa a ser repartido apenas pela fórmula de 2013.</p></div>
+        </section>
+
+        <section class="card" aria-labelledby="c2">
+          <div class="card-head"><h2 id="c2">2. Onde está o problema e qual é a correção</h2><p>A receita da fórmula, passo a passo, para a UF escolhida.</p></div>
+          <div class="prose" style="margin-bottom:12px">
+            <p>A fórmula soma duas metades: <b>metade pela população</b> (com piso de 1,2% e teto de 7%) e <b>metade pela renda</b> (quanto mais pobre, maior). Estados com renda acima de 72% da média nacional recebem um <b>desconto</b> (redutor), proporcional a quanto passam desse valor.</p>
+            <p>Na lei atual, o desconto corta <b>a fatia inteira</b>, inclusive a parte da população. A proposta faz o desconto valer <b>só sobre a metade calculada pela renda</b>. A população de um estado não diminui porque ele tem renda mais alta.</p>
+            <div class="analogy"><b>Uma comparação.</b> Na divisão da merenda entre turmas, metade vai pelo número de alunos e metade pela necessidade de cada turma. É justo a turma menos carente receber menos na metade da necessidade. Não faz sentido ela perder também parte da metade contada pelos alunos: os alunos continuam lá e continuam comendo.</div>
+          </div>
+          <div class="tbl-scroll"><table id="recipe"><thead><tr><th>Passo</th><th>Regra atual</th><th>Fórmula nova</th></tr></thead><tbody></tbody></table></div>
+          <p class="law" id="recipeNote" style="margin:8px 0 0"></p>
+        </section>
+
+        <section class="card" aria-labelledby="c3">
+          <div class="card-head"><h2 id="c3">3. Por que a fórmula sozinha não basta</h2><p>Sem proteção, as mudanças seriam grandes demais para um ano.</p></div>
+          <div class="tbl-scroll"><table id="pureTbl"><thead><tr><th>UF</th><th>Regra atual 2027</th><th>Só a fórmula nova</th><th>Variação</th></tr></thead><tbody></tbody></table></div>
+        </section>
+
+        <section class="card" aria-labelledby="c4">
+          <div class="card-head"><h2 id="c4">4. O fundo de compensação</h2><p>Um amortecedor: quem ganharia demais cede o excesso, que cobre quem perderia demais.</p></div>
+          <ol class="rules" id="rules"></ol>
+          <h3 class="tr-h3">Como o dinheiro circula</h3>
+          <div class="flow" id="flow"></div>
+          <h3 class="tr-h3">Como o fundo paga todo mundo e ainda sobra?</h3>
+          <div class="prose">
+            <p><b>O bolo não cresce.</b> A fórmula só redistribui: o que uns ganham, outros perdem, na mesma medida. <b>O limite de ganho e o de perda são calculados sobre bases de tamanhos diferentes.</b> Quem ganha costuma ter fatia pequena; quem perde costuma ter fatia grande.</p>
+          </div>
+          <div class="bases" id="bases"></div>
+          <div class="tbl-scroll"><table class="conta" id="conta"><thead><tr><th>A conta do fundo</th><th>Pontos do FPE</th></tr></thead><tbody></tbody></table></div>
+          <p class="law" id="contaNote" style="margin:8px 0 0"></p>
+        </section>
+
+        <section class="card" aria-labelledby="c5">
+          <div class="card-head"><h2 id="c5">5. Exemplos, passo a passo</h2><p>Valores finais já com a devolução da sobra.</p></div>
+          <div class="tbl-scroll"><table class="ex" id="exTbl"><thead><tr><th>UF</th><th>Regra atual</th><th>Só a fórmula nova</th><th>O que o fundo faz</th><th>Proposta</th><th>Variação</th></tr></thead><tbody></tbody></table></div>
+        </section>
+      </div>
+
+      <!-- ===================== POR UF ===================== -->
+      <div class="view" data-view="ufs" role="tabpanel" aria-labelledby="v-ufs" hidden>
+        <section class="card" aria-labelledby="ufTitle">
+          <div class="card-head">
+            <h2 id="ufTitle">As quatro etapas para cada UF</h2>
+            <div class="sortbar">
+              <label class="eyebrow" for="sort">Ordenar</label>
+              <select id="sort"><option value="delta">Maior ganho na etapa</option><option value="region">Por região</option><option value="ref">Maior fatia hoje</option><option value="name">Nome</option></select>
+            </div>
+          </div>
+          <div class="tbl-scroll">
+            <table id="ufTbl">
+              <thead><tr><th>UF</th><th>Regra atual</th><th>Se nada for aprovado</th><th>Fórmula nova</th><th>Fundo (p.p.)</th><th>Proposta</th><th style="text-align:center" id="ufBarH"></th><th>Δ %</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="legend">
+            <span><i style="background:var(--gain)"></i>ganha participação</span>
+            <span><i style="background:var(--loss)"></i>perde participação</span>
+            <span><i style="background:var(--rs)"></i>Rio Grande do Sul</span>
+            <span>A barra e o Δ % seguem a etapa escolhida no topo. Fundo: + recebe, − entrega.</span>
+          </div>
+        </section>
+        <section class="card" aria-labelledby="regTitle">
+          <div class="card-head"><h2 id="regTitle">Regiões e blocos</h2><p id="regSub"></p></div>
+          <div class="tbl-scroll">
+            <table id="regTbl"><thead><tr><th>Região</th><th>Regra atual</th><th>Se nada for aprovado</th><th>Fórmula nova</th><th>Proposta</th><th>Proposta × atual</th><th>Proposta × nada aprovado</th></tr></thead><tbody></tbody></table>
+          </div>
+        </section>
+      </div>
+
+      <!-- ===================== CONGRESSO ===================== -->
+      <div class="view" data-view="congresso" role="tabpanel" aria-labelledby="v-congresso" hidden>
+        <section class="card" aria-labelledby="congTitle">
+          <div class="card-head">
+            <h2 id="congTitle">Quem vota a proposta</h2>
+            <p>Lei complementar exige maioria absoluta: 41 senadores e 257 deputados (CF, art. 69).</p>
+          </div>
+          <div id="congBig"></div>
+          <div class="cg-legend"><span><i style="background:var(--c-sit)"></i>Situação (direita)</span><span><i style="background:var(--c-opo)"></i>Oposição (esquerda)</span><span><i style="background:var(--c-neu)"></i>Neutro (centro)</span></div>
+          <h3 class="tr-h3">Classificação por partido</h3>
+          <p class="law" style="margin:0 0 8px">Padrão: faixas do estudo de Bolognesi, Ribeiro e Codato (2023), que pediu a 519 cientistas políticos para situar os partidos numa escala de 0 (esquerda) a 10 (direita). Até 4,49 = oposição; de 4,50 a 7,00 = neutro; acima de 7,00 = situação. Mude o partido para reclassificar todos os seus parlamentares.</p>
+          <div class="ptab" id="ptab"></div>
+          <h3 class="tr-h3">Por UF (situação · oposição · neutros)</h3>
+          <div class="tbl-scroll">
+            <table id="cgTbl"><thead><tr><th>UF</th><th>Δ % na etapa</th><th>Senado</th><th>Sit. · Opos. · Neutros</th><th>Câmara</th><th>Sit. · Opos. · Neutros</th><th class="hide-sm">Composição da Câmara</th></tr></thead><tbody></tbody></table>
+          </div>
+          <h3 class="tr-h3">Parlamentares</h3>
+          <div class="cg-tools">
+            <div class="ctl"><label for="cgUF">UF</label><select id="cgUF"></select></div>
+            <button type="button" class="reset" id="cgReset" style="width:auto">Voltar à classificação padrão</button>
+          </div>
+          <div class="tbl-scroll" id="cgList"></div>
+          <p class="law" style="margin-top:8px">Fontes: deputados eleitos em 4/10/2026 (lista por UF conferida com o total por partido da Gazeta SP e com as bancadas por UF do Congresso em Foco); senadores a partir de 2027 (Congresso em Foco, 6/10/2026). Classificação partidária: Bolognesi, Ribeiro e Codato, "Uma nova classificação ideológica dos partidos políticos brasileiros", DADOS 66(2), 2023. Partidos são os da eleição; trocas posteriores não estão refletidas. A contagem supõe que cada parlamentar vota pelo interesse do seu estado.</p>
+        </section>
+      </div>
+
+      <footer>
+        <div><b>Referência.</b> Ganhos e perdas são medidos contra a fatia de cada UF em 2027 pela regra atual: 64,43% do FPE pelos coeficientes fixos do Anexo da LC 62/89 e 35,57% pelo coeficiente da LC 143/2013 com dados de 2025. A divisão 64,43% / 35,57% é uma estimativa, deduzida da tabela da SEFAZ/PE e dos boletins do Tesouro. "Se nada for aprovado" é o coeficiente da LC 143 aplicado a todo o fundo, como determinou o STF para depois de 30/6/2027.</div>
+        <div><b>Proposta.</b> Fórmula da LC 62/89, art. 2º, com o redutor aplicado só ao fator renda (VR 72%, piso 1,2% e teto 7% da população, mínimo 0,5%). Fundo: cada UF fica entre regra atual × (1 − perda máxima) e regra atual × (1 + ganho máximo); UFs com menos de 2,5 milhões de habitantes têm perda máxima de 0%; a sobra do fundo volta a todas, na proporção do que recebem. Ainda falta definir por quanto tempo as travas valem e qual é a referência nos anos seguintes.</div>
+        <div><b>Fontes.</b> <a href="https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp62.htm">LC 62/1989</a> com redação da <a href="https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp143.htm">LC 143/2013</a>; STF, ADI 5.069 (<a href="https://www.migalhas.com.br/quentes/458387/stf-prorroga-regras-de-repasse-do-fpe-ate-junho-de-2027">questão de ordem de 17/6/2026</a>); IBGE, Estimativas de População e PNAD Contínua 2025. Mapa: <a href="https://github.com/VictorCazanave/svg-maps/tree/master/packages/brazil">svg-maps/brazil</a>, de Victor Cazanave, licença <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.</div>
+      </footer>
+    </main>
+  </div>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+(function(){
+const NAC=2315.87, W_BASE=0.6443, PP=0.5, PR=0.5, MINC=0.005, TOL=0.000005;
+const RAW=[
+ ["Acre","AC","N",884372,1391.53],["Amapá","AP","N",806517,1697.24],["Amazonas","AM","N",4321616,1484.39],["Pará","PA","N",8711196,1420],
+ ["Rondônia","RO","N",1751950,1990.95],["Roraima","RR","N",738772,1764],["Tocantins","TO","N",1586859,2036.09],["Alagoas","AL","NE",3220848,1421.6],
+ ["Bahia","BA","NE",14870907,1465.2],["Ceará","CE","NE",9268836,1389.77],["Maranhão","MA","NE",7018211,1219.42],["Paraíba","PB","NE",4164468,1543.07],
+ ["Pernambuco","PE","NE",9562007,1600.24],["Piauí","PI","NE",3384547,1546.21],["Rio Grande do Norte","RN","NE",3455236,1819.11],["Sergipe","SE","NE",2299425,1696.78],
+ ["Distrito Federal","DF","CO",2996899,4537.77],["Goiás","GO","CO",7423629,2406.89],["Mato Grosso","MT","CO",3893659,2334.96],["Mato Grosso do Sul","MS","CO",2924631,2454.02],
+ ["Espírito Santo","ES","SE",4126854,2248.85],["Minas Gerais","MG","SE",21393441,2352.69],["Rio de Janeiro","RJ","SE",17223547,2793.73],["São Paulo","SP","SE",46081801,2956.42],
+ ["Paraná","PR","S",11890517,2761.75],["Rio Grande do Sul","RS","S",11233263,2839.14],["Santa Catarina","SC","S",8187029,2809.45]];
+const LC62={AC:.03421,AP:.03412,AM:.027904,PA:.06112,RO:.028156,RR:.024807,TO:.0434,AL:.041601,BA:.093962,CE:.073369,MA:.072182,PB:.047889,PE:.069002,PI:.043214,RN:.041779,SE:.041553,DF:.006902,GO:.028431,MT:.023079,MS:.01332,ES:.015,MG:.044545,RJ:.015277,SP:.01,PR:.028832,RS:.023548,SC:.012798};
+const UF=RAW.map(r=>({name:r[0],uf:r[1],reg:r[2],pop:r[3],rd:r[4]})), NU=UF.length;
+const iRS=UF.findIndex(u=>u.uf==="RS"), IDX=Object.fromEntries(UF.map((u,i)=>[u.uf,i]));
+const REG=[["N","Norte"],["NE","Nordeste"],["CO","Centro-Oeste"],["SE","Sudeste"],["S","Sul"]], REGNAME=Object.fromEntries(REG);
+const isNNECO=u=>u.reg==="N"||u.reg==="NE"||u.reg==="CO";
+const POPTOT=UF.reduce((a,u)=>a+u.pop,0);
+const sum=a=>a.reduce((x,y)=>x+y,0);
+
+// LC 62/89, art. 2º, §1º. method "lei": redutor sobre FP+FR; "fr": só sobre FR.
+function formula(method,vr=0.72,teto=0.07,piso=0.012){
+  const E=UF.map(u=>u.pop/POPTOT), F=E.map(x=>Math.max(piso,Math.min(teto,x))), sF=sum(F);
+  const G=F.map(x=>PP*x/sF), H=UF.map(u=>1/u.rd), sH=sum(H), I=H.map(x=>PR*x/sH);
+  const lim=NAC*vr, L=UF.map(u=>u.rd>lim?(u.rd-lim)/lim:0);
+  const raw=G.map((g,i)=>method==="fr"? g+I[i]*Math.max(0,1-L[i]) : (g+I[i])*(1-L[i]));
+  const M=raw.map(x=>Math.max(MINC,x)), sM=sum(M);
+  return {c:M.map(x=>x/sM),E,F,G,I,L,raw,M};
+}
+const LAW=formula("lei"), NEW=formula("fr");
+const EXC=LAW.c, NEWC=NEW.c;
+const REF=UF.map((u,i)=>W_BASE*LC62[u.uf]+(1-W_BASE)*EXC[i]);
+
+const DEFP={perda:0.05,popPeq:2500000,perdaPeq:0,ganho:0.10};
+function proposal(P){
+  const small=UF.map(u=>u.pop<P.popPeq), loss=small.map(s=>s?P.perdaPeq:P.perda);
+  const lo=REF.map((r,i)=>r*(1-loss[i])), hi=REF.map(r=>r*(1+P.ganho));
+  const ent=NEWC.map((c,i)=>Math.max(c-hi[i],0)), rec=NEWC.map((c,i)=>Math.max(lo[i]-c,0));
+  const x=NEWC.map((c,i)=>c-ent[i]+rec[i]), sx=sum(x), fin=x.map(v=>v/sx);
+  const arr=sum(ent), pag=sum(rec);
+  const G=sum(NEWC.map((c,i)=>Math.max(c-REF[i],0)));
+  const K=sum(NEWC.map((c,i)=>c>REF[i]?Math.min(c-REF[i],hi[i]-REF[i]):0));
+  const A=sum(NEWC.map((c,i)=>c<REF[i]?Math.min(REF[i]-c,REF[i]-lo[i]):0));
+  const capped=UF.map((u,i)=>i).filter(i=>ent[i]>0), floored=UF.map((u,i)=>i).filter(i=>rec[i]>0);
+  const fBig=floored.filter(i=>!small[i]), fSmall=floored.filter(i=>small[i]);
+  return {small,loss,lo,hi,ent,rec,x,fin,arr,pag,sobra:arr-pag,k:1/sx-1,G,K,A,capped,fBig,fSmall,
+    pagBig:sum(fBig.map(i=>rec[i])),pagSmall:sum(fSmall.map(i=>rec[i]))};
+}
+
+const PARL=[["AC","S","Alan Rick","Republicanos",31],["AC","S","Mara Rocha","Republicanos",35],["AC","S","Marcio Bittar","PL",35],["AL","S","Arthur Lira","PP",35],["AL","S","Marina JHC","PSDB",35],["AL","S","Renan Filho","MDB",31],["AM","S","Eduardo Braga","MDB",35],["AM","S","Omar Aziz","PSD",31],["AM","S","Plínio Valério","PSDB",35],["AP","S","Davi Alcolumbre","União",31],["AP","S","Lucas Barreto","PSD",35],["AP","S","Rayssa Furlan","Podemos",35],["BA","S","Jaques Wagner","PT",35],["BA","S","Otto Alencar","PSD",31],["BA","S","Rui Costa","PT",35],["CE","S","Camilo Santana","PT",31],["CE","S","Cid Gomes","PSB",35],["CE","S","Luizianne Lins","Rede",35],["DF","S","Bia Kicis","PL",35],["DF","S","Damares Alves","Republicanos",31],["DF","S","Michelle Bolsonaro","PL",35],["ES","S","Evair de Melo","Republicanos",35],["ES","S","Magno Malta","PL",31],["ES","S","Renato Casagrande","PSB",35],["GO","S","Gracinha Caiado","União",35],["GO","S","Gustavo Gayer","PL",35],["GO","S","Wilder Morais","PL",31],["MA","S","André Fufuca","PP",35],["MA","S","Lahesio Bonfim","Novo",35],["MA","S","Lourdinha Pereira","PSB",31],["MG","S","Alex Diniz","PL",31],["MG","S","Domingos Sávio","PL",35],["MG","S","Marília Campos","PT",35],["MS","S","Capitão Contar","PL",35],["MS","S","Reinaldo Azambuja","PL",35],["MS","S","Tereza Cristina","PP",31],["MT","S","José Medeiros","PL",35],["MT","S","Mauro Mendes","União",35],["MT","S","Wellington Fagundes","PL",31],["PA","S","Beto Faro","PT",31],["PA","S","Chicão","União",35],["PA","S","Helder Barbalho","MDB",35],["PB","S","Efraim Filho","PL",31],["PB","S","João Azevêdo","PSB",35],["PB","S","Veneziano Vital do Rêgo","MDB",35],["PE","S","Humberto Costa","PT",35],["PE","S","Marília Arraes","PDT",35],["PE","S","Teresa Leitão","PT",31],["PI","S","Júlio César","PSD",35],["PI","S","Jussara Lima","PSD",31],["PI","S","Marcelo Castro","MDB",35],["PR","S","Deltan Dallagnol","Novo",35],["PR","S","Filipe Barros","PL",35],["PR","S","Luis Felipe Cunha","União",31],["RJ","S","Carlos Jordy","PL",35],["RJ","S","Carlos Portinho","PL",35],["RJ","S","Romário","Sem partido",31],["RN","S","Rogério Marinho","PL",31],["RN","S","Samanda de Lula","PT",35],["RN","S","Styvenson Valentim","Podemos",35],["RO","S","Bruno Scheid","PL",35],["RO","S","Fernando Máximo","PL",35],["RO","S","Jaime Bagattoli","PL",31],["RR","S","Dr. Hiran","PP",31],["RR","S","Nicoletti","PL",35],["RR","S","Teresa Surita","MDB",35],["RS","S","Hamilton Mourão","Republicanos",31],["RS","S","Marcel van Hattem","Novo",35],["RS","S","Sanderson","PL",35],["SC","S","Carlos Bolsonaro","PL",35],["SC","S","Caroline de Toni","PL",35],["SC","S","Jorge Seif","PL",31],["SE","S","Alessandro Vieira","MDB",35],["SE","S","Laércio Oliveira","PP",31],["SE","S","Rogério Carvalho","PT",35],["SP","S","André do Prado","PL",35],["SP","S","Guilherme Derrite","PP",35],["SP","S","Marcos Pontes","PL",31],["TO","S","Alexandre Guimarães","MDB",35],["TO","S","Eduardo Gomes","PL",35],["TO","S","Professora Dorinha Seabra","União",31],["AC","D","Coronel Ulysses","União",0],["AC","D","Dr. Fábio Rueda","União",0],["AC","D","Júnior Betão","PL",0],["AC","D","Pedro Longo","MDB",0],["AC","D","Perpétua Almeida","PCdoB",0],["AC","D","Roberto Duarte","Republicanos",0],["AC","D","Socorro Neri","PP",0],["AC","D","Zé Adriano","PP",0],["AL","D","Alvinho Lira","PP",0],["AL","D","Daniel Barbosa","PP",0],["AL","D","Delegado Fabio Costa","PP",0],["AL","D","Gilvan Barros","PSDB",0],["AL","D","Isnaldo Bulhões Jr.","MDB",0],["AL","D","Julia Nunes","PSD",0],["AL","D","Luciano Amaral","PSD",0],["AL","D","Marx Beltrão","União",0],["AL","D","Rafael Brito","MDB",0],["AP","D","Aline Gurgel","União",0],["AP","D","Dorinaldo Malafaia","PDT",0],["AP","D","Dra. Erica","Podemos",0],["AP","D","Felipe Show","União",0],["AP","D","Josenildo","PDT",0],["AP","D","Marcio Serrão","União",0],["AP","D","Professora Marcivânia","PCdoB",0],["AP","D","Vinicius Gurgel","PL",0],["AM","D","Adail Filho","MDB",0],["AM","D","Alfredo Nascimento","PL",0],["AM","D","Amom Mandel","Republicanos",0],["AM","D","Fausto Jr.","União",0],["AM","D","Joana Darc","União",0],["AM","D","Sargento Salazar","PL",0],["AM","D","Saullo Vianna","MDB",0],["AM","D","Sidney Leite","PSD",0],["BA","D","Adolfo Viana","PSDB",0],["BA","D","Afonso Florence","PT",0],["BA","D","Alice Portugal","PCdoB",0],["BA","D","Antonio Brito","PSD",0],["BA","D","Capitão Alden","PL",0],["BA","D","Carlos Muniz","PSDB",0],["BA","D","Charles Fernandes","PSD",0],["BA","D","Claudio Cajado","PP",0],["BA","D","Dal Barreto","União",0],["BA","D","Daniel","PCdoB",0],["BA","D","Daniel Alencar","PSD",0],["BA","D","Diego Coronel","Republicanos",0],["BA","D","Ditinho Avivip","União",0],["BA","D","Doutora Raissa Soares","PL",0],["BA","D","Elmar","União",0],["BA","D","Elmo Vaz","Avante",0],["BA","D","Felix Mendonça","PDT",0],["BA","D","Gabriel Nunes","PSD",0],["BA","D","Ivoneide Caetano","PT",0],["BA","D","João Bacelar","PL",0],["BA","D","Jorge Solla","PT",0],["BA","D","Joseildo","PT",0],["BA","D","Léo Prates","Republicanos",0],["BA","D","Leur Lomanto Junior","União",0],["BA","D","Lucas Reis","PT",0],["BA","D","Manuel Rocha","União",0],["BA","D","Márcio Marinho","Republicanos",0],["BA","D","Maria Marighella","PT",0],["BA","D","Mario Negromonte Jr.","PSB",0],["BA","D","Neto Carletto","Avante",0],["BA","D","Olivia","PCdoB",0],["BA","D","Pastor Sargento Isidório","Avante",0],["BA","D","Paulo Azi","União",0],["BA","D","Raimundo Costa","PSD",0],["BA","D","Ricardo Maia","MDB",0],["BA","D","Roberta Roma","PL",0],["BA","D","Sandro Filho","PP",0],["BA","D","Sergio Brito","PSD",0],["BA","D","Valmir Assunção","PT",0],["RS","D","Afonso Hamm","PP",0],["RS","D","Alceu Moreira","MDB",0],["RS","D","Any Ortiz","PP",0],["RS","D","Bibo Nunes","PL",0],["RS","D","Bohn Gass","PT",0],["RS","D","Busato","União",0],["RS","D","Carlos Gomes","Republicanos",0],["RS","D","Covatti Filho","PP",0],["RS","D","Daiana Santos","PCdoB",0],["RS","D","Danrlei","PSD",0],["RS","D","Denise Pessôa","PT",0],["RS","D","Diogo Siqueira","PL",0],["RS","D","Felipe Camozzato","Novo",0],["RS","D","Fernanda Melchionna","PSOL",0],["RS","D","Giovani Cherini","PL",0],["RS","D","Gustavo Victorino","Republicanos",0],["RS","D","Jessé Sangalli","PL",0],["RS","D","Juvir Costella","MDB",0],["RS","D","Lucas Redecker","PSD",0],["RS","D","Marcelo Moraes","PL",0],["RS","D","Marcon","PT",0],["RS","D","Maria do Rosário","PT",0],["RS","D","Maurício Marcon","PL",0],["RS","D","Osmar Terra","PL",0],["RS","D","Pedro Westphalen","PP",0],["RS","D","Perondi","PL",0],["RS","D","Pompeo de Mattos","PDT",0],["RS","D","Rony Gabriel","Podemos",0],["RS","D","Sergio Zambiasi","Podemos",0],["RS","D","Valdeci Oliveira","PT",0],["RS","D","Vilmar Zanchin","MDB",0],["CE","D","AJ Albuquerque","PP",0],["CE","D","André Fernandes","PL",0],["CE","D","Carmelo Neto","PL",0],["CE","D","Célio Studart","PSD",0],["CE","D","Danilo Forte","PP",0],["CE","D","Domingos Neto","PSD",0],["CE","D","Dr. Acilon","PSB",0],["CE","D","Dr. Jaziel","PL",0],["CE","D","Emanuel Acrizio","Solidariedade",0],["CE","D","Erika Amorim","Republicanos",0],["CE","D","Fernanda Pessoa","PSD",0],["CE","D","Fernando Santana","PT",0],["CE","D","Giordanna Mano","PRD",0],["CE","D","Idilvan","PSB",0],["CE","D","Luisa Cela","PT",0],["CE","D","Matheus Noronha","PL",0],["CE","D","Moses Rodrigues","União",0],["CE","D","Nenen Coelho","MDB",0],["CE","D","Raimundo Martins","PT",0],["CE","D","Robério Monteiro","PSB",0],["CE","D","Tainah Marinho","PSB",0],["CE","D","Yury do Paredão","MDB",0],["DF","D","Agnelo Queiroz","PT",0],["DF","D","Alberto Fraga","PL",0],["DF","D","Fábio Felix","PSOL",0],["DF","D","Izalci Lucas","PL",0],["DF","D","Julio Cesar","Republicanos",0],["DF","D","Prof. Reginaldo Veras","PV",0],["DF","D","Rafael Prudente","MDB",0],["DF","D","Thiago Manzoni","PL",0],["ES","D","Coronel Ramalho","Republicanos",0],["ES","D","Da Vitória","PP",0],["ES","D","Dr. Bruno Resende","União",0],["ES","D","Gilson Daniel","Podemos",0],["ES","D","Jack Rocha","PT",0],["ES","D","João Coser","PT",0],["ES","D","Lucas O Federal da Direita","PL",0],["ES","D","Lucas Polese","PL",0],["ES","D","Manu","PSB",0],["ES","D","Marcelo Santos","União",0],["GO","D","Adriano do Baldy","PP",0],["GO","D","Bruno Peixoto","União",0],["GO","D","Célio Silveira","MDB",0],["GO","D","Daniel Agrobom","PSD",0],["GO","D","Delegada Adriana Accorsi","PT",0],["GO","D","Fábio Sousa","PL",0],["GO","D","Flávia Morais","MDB",0],["GO","D","Fred Rodrigues","PL",0],["GO","D","Glaustin da Fokus","Podemos",0],["GO","D","José Nelto","União",0],["GO","D","Lucas Calil","PRD",0],["GO","D","Lucas do Vale","PSD",0],["GO","D","Magda Mofatto","PL",0],["GO","D","Major Vitor Hugo","PL",0],["GO","D","Marussa Boldrin","Republicanos",0],["GO","D","Rubens Otoni","PT",0],["GO","D","Silvye Alves","União",0],["MA","D","Aldir Junior","PL",0],["MA","D","Aluisio Mendes","Republicanos",0],["MA","D","Amanda Gentil","PP",0],["MA","D","Dr. Orlando","PL",0],["MA","D","Erlanio Xavier","PDT",0],["MA","D","Fabiana Vilar","PL",0],["MA","D","Hildo Rocha","MDB",0],["MA","D","Iracema Vale","MDB",0],["MA","D","Josivaldo JP","União",0],["MA","D","Junior Lourenço","MDB",0],["MA","D","Juscelino Filho","PSDB",0],["MA","D","Larissa DP","MDB",0],["MA","D","Márcio Jerry","PCdoB",0],["MA","D","Mariana Carvalho","PL",0],["MA","D","Marreca Filho","PRD",0],["MA","D","Pedro Lucas Fernandes","União",0],["MA","D","Rubens Pereira Jr.","PT",0],["MA","D","Vinicius Ferro","MDB",0],["MT","D","Coronel Assis","PL",0],["MT","D","Coronel Fernanda","PL",0],["MT","D","Coronel Roveri","Podemos",0],["MT","D","Fábio Garcia","União",0],["MT","D","Juarez Costa","Republicanos",0],["MT","D","Professora Rosa Neide","PT",0],["MT","D","Thiago Boava Hey Roy","PL",0],["MT","D","Virginia Mendes","União",0],["MS","D","Beto Pereira","Republicanos",0],["MS","D","Camila Jara","PT",0],["MS","D","Dagoberto Nogueira","PP",0],["MS","D","Isa Marcondes","Republicanos",0],["MS","D","Mara Caseiro","PL",0],["MS","D","Marcos Pollon","PL",0],["MS","D","Rodolfo Nogueira","PL",0],["MS","D","Rose Modesto","União",0],["PA","D","Adriano Coelho","MDB",0],["PA","D","Airton Faleiro","PT",0],["PA","D","Andréia Siqueira","PSB",0],["PA","D","Antonio Doido","MDB",0],["PA","D","Bob Fllay","Podemos",0],["PA","D","Cássio Andrade","MDB",0],["PA","D","Delegado Caveira","PL",0],["PA","D","Dilvanda Faro","PT",0],["PA","D","Dra. Alessandra Haber","Podemos",0],["PA","D","Jader Filho","MDB",0],["PA","D","Joaquim Passarinho","PL",0],["PA","D","Júnior Ferrari","PSD",0],["PA","D","Lu Ogawa","PP",0],["PA","D","Priante","MDB",0],["PA","D","Raimundo Santos","PSD",0],["PA","D","Renilce Nicodemos","MDB",0],["PA","D","Rogério Barra","PL",0],["PB","D","Aguinaldo Ribeiro","PP",0],["PB","D","Cabo Gilberto Silva","PL",0],["PB","D","Dr. Damião","União",0],["PB","D","George Morais","PL",0],["PB","D","Gervásio Maia","PCdoB",0],["PB","D","Hugo Motta","Republicanos",0],["PB","D","Murilo Galdino","Republicanos",0],["PB","D","Pollyanna","PP",0],["PB","D","Ricardo Coutinho","PT",0],["PB","D","Ruy Carneiro","Podemos",0],["PB","D","Wellington Roberto","PSD",0],["PB","D","Wilson Santiago","Republicanos",0],["PI","D","Castro Neto","MDB",0],["PI","D","Delegado Charles","PV",0],["PI","D","Dr. Francisco","PT",0],["PI","D","Flávio Nogueira","PT",0],["PI","D","Georgiano","PSD",0],["PI","D","Jadyel","Republicanos",0],["PI","D","Julio Arcoverde","PP",0],["PI","D","Marcos Aurélio","MDB",0],["PI","D","Wilson Martins","PSD",0],["PI","D","Zé Santana","PT",0],["RN","D","Benes Leocádio","União",0],["RN","D","Dr. Bernardo","PV",0],["RN","D","General Girão","PL",0],["RN","D","João Maia","PP",0],["RN","D","Natália Bonavides","PT",0],["RN","D","Nina","PL",0],["RN","D","Sargento Gonçalves","PL",0],["RN","D","Thabatta Pimenta","PV",0],["MG","D","Ana Elisa","PT",0],["MG","D","Ana Pimentel","PT",0],["MG","D","André Janones","Rede",0],["MG","D","Bella Gonçalves","PT",0],["MG","D","Bruno Farias","Republicanos",0],["MG","D","Caporezzo","PL",0],["MG","D","Dandara","PT",0],["MG","D","Delegada Ione","PL",0],["MG","D","Delegado Marcelo Freitas","União",0],["MG","D","Diego Andrade","PSD",0],["MG","D","Dimas Fabiano","PP",0],["MG","D","Dr. Frederico","PL",0],["MG","D","Dr. Marcos Vinicius","PL",0],["MG","D","Duarte Júnior","PSB",0],["MG","D","Duda Salabert","PSOL",0],["MG","D","Emidinho Madeira","PL",0],["MG","D","Eros Biondini","PL",0],["MG","D","Fabinho Ramalho","PL",0],["MG","D","Fred Costa","PRD",0],["MG","D","Gilberto Abramo","Republicanos",0],["MG","D","Gleide Andrade","PT",0],["MG","D","Gleidson Azevedo","Republicanos",0],["MG","D","Greyce Elias","PL",0],["MG","D","Igor Santos","PL",0],["MG","D","Junio Amaral","PL",0],["MG","D","Lafayette Andrada","PL",0],["MG","D","Leonardo Monteiro","PT",0],["MG","D","Lincoln Portela","PL",0],["MG","D","Lohanna","PV",0],["MG","D","Luis Tibé","Avante",0],["MG","D","Marcelo Álvaro Antônio","PL",0],["MG","D","Miguel Ângelo","PT",0],["MG","D","Nely Aquino","Podemos",0],["MG","D","Newton Cardoso Jr.","MDB",0],["MG","D","Nikolas Ferreira","PL",0],["MG","D","Padre João","PT",0],["MG","D","Paulo Abi-Ackel","PSDB",0],["MG","D","Paulo Guedes","PT",0],["MG","D","Pedro Rousseff","PT",0],["MG","D","Pinheirinho","PP",0],["MG","D","Rafael Simões","União",0],["MG","D","Reginaldo Lopes","PT",0],["MG","D","Rodrigo de Castro","União",0],["MG","D","Rodrigo Tavares","PL",0],["MG","D","Rogério Correia","PT",0],["MG","D","Rosangela Reis","PL",0],["MG","D","Samuel Viana","União",0],["MG","D","Sargento Mello-Casal","PL",0],["MG","D","Subtenente Gonzaga","PL",0],["MG","D","Thiago Ganem","PL",0],["MG","D","Vinicius Diniz","PL",0],["MG","D","Weliton Prado","PSD",0],["MG","D","Zé Vitor","PL",0],["PR","D","Aliel Machado","PV",0],["PR","D","Ana Júlia","PT",0],["PR","D","Arilson Chiorato","PT",0],["PR","D","Beto Preto","PSD",0],["PR","D","Carol Dartora","PT",0],["PR","D","Da Costa do Perdeu Piá","Podemos",0],["PR","D","Delegado Francischini","PL",0],["PR","D","Delegado Matheus Laiola","União",0],["PR","D","Felipe Francischini","Podemos",0],["PR","D","Guilherme Kilter","Novo",0],["PR","D","Henrique Mecabô","Novo",0],["PR","D","Jeffrey Chiquini","Novo",0],["PR","D","Leandre","PSD",0],["PR","D","Luizão Goulart","PSD",0],["PR","D","Marcelo Belinati","PP",0],["PR","D","Newton Bonin","Republicanos",0],["PR","D","Paranhos","PSD",0],["PR","D","Paulo Litro","União",0],["PR","D","Paulo Martins","Novo",0],["PR","D","Pedro Lupion","Republicanos",0],["PR","D","Renato Freitas","PT",0],["PR","D","Ricardo Arruda","PL",0],["PR","D","Ricardo Barros","PP",0],["PR","D","Rosangela Moro","PL",0],["PR","D","Sargento Fahur","PL",0],["PR","D","Sergio Souza","MDB",0],["PR","D","Tião Medeiros","PP",0],["PR","D","Toninho Wandscheer","PP",0],["PR","D","Vermelho","PL",0],["PR","D","Zeca Dirceu","PT",0],["PE","D","Anderson Ferreira","PL",0],["PE","D","Augusto Coutinho","Republicanos",0],["PE","D","Carlos Veras","PT",0],["PE","D","Clarissa Tércio","PP",0],["PE","D","Clodoaldo Magalhães","PV",0],["PE","D","Eduardo Moura","Novo",0],["PE","D","Eliane Soares","PSB",0],["PE","D","Felipe Carreras","PSB",0],["PE","D","Fernando Filho","União",0],["PE","D","Fernando Monteiro","PSD",0],["PE","D","Gabriel Porto","PSB",0],["PE","D","Gilson Machado","Podemos",0],["PE","D","Guilherme Uchoa Junior","PSD",0],["PE","D","Iza Arruda","MDB",0],["PE","D","Jones Manoel","PSOL",0],["PE","D","Juliana de Chaparral","União",0],["PE","D","Liana Cirne","PT",0],["PE","D","Lula da Fonte","PP",0],["PE","D","Marcelo Gouveia","Podemos",0],["PE","D","Pedro Campos","PSB",0],["PE","D","Ricardo Teobaldo","Podemos",0],["PE","D","Rosa Amorim","PT",0],["PE","D","Silvio Costa Filho","Republicanos",0],["PE","D","Thiago Medina","PL",0],["PE","D","Waldemar Oliveira","Avante",0],["RJ","D","Altineu Cortes","PL",0],["RJ","D","Anielle Franco","PT",0],["RJ","D","Aureo Ribeiro","Solidariedade",0],["RJ","D","Bebeto","PP",0],["RJ","D","Chris Tonietto","PL",0],["RJ","D","Dani Cunha","PL",0],["RJ","D","Daniel Soranz","PSD",0],["RJ","D","Delegado Felipe Curi","PP",0],["RJ","D","Diego Quaqua","PT",0],["RJ","D","Diogo Balieiro Diniz","PL",0],["RJ","D","Douglas Gomes","PL",0],["RJ","D","Dr. Luizinho","PP",0],["RJ","D","Elias Jabbour","PCdoB",0],["RJ","D","Fabiano Horta","PT",0],["RJ","D","Freixo","PT",0],["RJ","D","General Pazuello","PL",0],["RJ","D","Glauber Braga","PSOL",0],["RJ","D","Gutemberg Reis","MDB",0],["RJ","D","Jandira Feghali","PCdoB",0],["RJ","D","Jorge Miranda","PL",0],["RJ","D","Julia de Castro","PL",0],["RJ","D","Juninho do Pneu","PSDB",0],["RJ","D","Leniel Borel","PP",0],["RJ","D","Lindbergh","PT",0],["RJ","D","Luciano Vieira","PSDB",0],["RJ","D","Luis Carlos Gomes","Republicanos",0],["RJ","D","Luiz Lima","Novo",0],["RJ","D","Manoela Peres","PL",0],["RJ","D","Marcelo Queiroz","PSDB",0],["RJ","D","Márcio Rezende","PSD",0],["RJ","D","Marcio Ribeiro","PSD",0],["RJ","D","Marcos Tavares","PDT",0],["RJ","D","Nísia Trindade","PT",0],["RJ","D","Pastor Henrique Vieira","PSOL",0],["RJ","D","Poubel","PL",0],["RJ","D","Rafael Satiê","PL",0],["RJ","D","Renan Ferreirinha","PSD",0],["RJ","D","Renato Cozzolino","PP",0],["RJ","D","Rick Azevedo","PSOL",0],["RJ","D","Rueda","União",0],["RJ","D","Soraya Santos","PL",0],["RJ","D","Sóstenes Cavalcante","PL",0],["RJ","D","Talíria Petrone","PSOL",0],["RJ","D","Talita Galhardo","PSDB",0],["RJ","D","Thiago Gagliasso","PL",0],["RJ","D","Wladimir Garotinho","PL",0],["SP","D","Adriana Ventura","Novo",0],["SP","D","Alencar Santana","PT",0],["SP","D","Altair Moraes","Republicanos",0],["SP","D","Ana Carolina Oliveira","Podemos",0],["SP","D","Arlindo Chinaglia","PT",0],["SP","D","Baleia Rossi","MDB",0],["SP","D","Capitão Augusto","PL",0],["SP","D","Carlos Bezerra Jr.","PSD",0],["SP","D","Carlos Sampaio","PSD",0],["SP","D","Carlos Zarattini","PT",0],["SP","D","Celso Russomanno","Republicanos",0],["SP","D","Coronel Telhada","PP",0],["SP","D","Delegado Bruno Lima","Podemos",0],["SP","D","Delegado Palumbo","Podemos",0],["SP","D","Delegado Paulo Bilynskyj","PL",0],["SP","D","Dra. Sandra Tadeu","PL",0],["SP","D","Edinho Araujo","PRD",0],["SP","D","Edinho Silva","PT",0],["SP","D","Eduardo Cury","PL",0],["SP","D","Enrico Misasi","MDB",0],["SP","D","Erika Hilton","PSOL",0],["SP","D","Felipe Becari","Podemos",0],["SP","D","Gil Diniz","PL",0],["SP","D","Guilherme Cortez","PSOL",0],["SP","D","Guilherme Piai","Republicanos",0],["SP","D","Igor Soares","PSD",0],["SP","D","Jefferson Campos","PL",0],["SP","D","Jilmar Tatto","PT",0],["SP","D","João Cury","MDB",0],["SP","D","João Paulo Cunha","PT",0],["SP","D","Jonas Donizete","PSB",0],["SP","D","Juliana Cardoso","PT",0],["SP","D","Kiko Celeguim","PT",0],["SP","D","Kim Kataguiri","Missão",0],["SP","D","Lucas Pavanato","PL",0],["SP","D","Luiz Fernando Machado","PL",0],["SP","D","Luiz Philippe de O e Bragança","PL",0],["SP","D","Luna Zarattini","PT",0],["SP","D","Marcio Alvino","PL",0],["SP","D","Marcos Neves","PSD",0],["SP","D","Marcos Pereira","Republicanos",0],["SP","D","Maria Rosas","Republicanos",0],["SP","D","Marina Helena","Novo",0],["SP","D","Mario Frias","PL",0],["SP","D","Mauricio Neves","PP",0],["SP","D","Miguel Lombardi","PL",0],["SP","D","Milton Leite Filho","União",0],["SP","D","Motta","PL",0],["SP","D","Natália Boulos","PSOL",0],["SP","D","Ney Santos","Republicanos",0],["SP","D","Nilto Tatto","PT",0],["SP","D","Pastor Marco Feliciano","PL",0],["SP","D","Paulo Alexandre Barbosa","PSD",0],["SP","D","Paulo Freire","PL",0],["SP","D","Paulo Serra","PSDB",0],["SP","D","Professora Luciene Cavalcante","PSOL",0],["SP","D","Renata Abreu","Podemos",0],["SP","D","Renato Bolsonaro","PL",0],["SP","D","Rodrigo Gambale","Podemos",0],["SP","D","Rosana Valle","PL",0],["SP","D","Sâmia Bomfim","PSOL",0],["SP","D","Sargento Nantes","PP",0],["SP","D","Saulo Pedroso","PSD",0],["SP","D","Sidney Cruz","MDB",0],["SP","D","Sirlange Manga","União",0],["SP","D","Sônia Guajajara","PSOL",0],["SP","D","Tabata Amaral","PSB",0],["SP","D","Thiago dos Reis","PT",0],["SP","D","Thiago Surfista","PL",0],["SP","D","Wesley Cezar Lelinho","PL",0],["RO","D","Coronel Chrisóstomo","PL",0],["RO","D","Cristiane Lopes","Podemos",0],["RO","D","Dr. Jaime Gazola","Podemos",0],["RO","D","Joliane Furia","PSD",0],["RO","D","Lucio Mosquini","PL",0],["RO","D","Maurício Carvalho","União",0],["RO","D","Sofia Andrade","PL",0],["RO","D","Thiago Flores","União",0],["RR","D","Daniel Trindade","PL",0],["RR","D","Defensor Stélio Dener","União",0],["RR","D","Duda Ramos","Podemos",0],["RR","D","Ítalo Otávio","Republicanos",0],["RR","D","Joner Chagas","Republicanos",0],["RR","D","Marcos Jorge","Republicanos",0],["RR","D","Rodrigo Mesquita","Podemos",0],["RR","D","Zé Haroldo Cathedral","União",0],["SC","D","Ana Paula Lima","PT",0],["SC","D","Daniel Freitas","PL",0],["SC","D","Daniela Reinehr","PL",0],["SC","D","Geovania de Sá","Republicanos",0],["SC","D","Gilson Marques","Novo",0],["SC","D","Giovana Mondardo","PCdoB",0],["SC","D","Jair Renan Valle Bolsonaro","PL",0],["SC","D","Julia Zanatta","PL",0],["SC","D","Julio Garcia","PSD",0],["SC","D","Paulinha","Podemos",0],["SC","D","Pezenti","MDB",0],["SC","D","Professor Pedro Uczai","PT",0],["SC","D","Ricardo Guidi","PL",0],["SC","D","Sargento Lima","PL",0],["SC","D","Zé Milton","PP",0],["SC","D","Zé Trovão","PL",0],["SE","D","Capitão Samuel","União",0],["SE","D","Claudio Mitidieri","PSB",0],["SE","D","Delegada Katarina","PSD",0],["SE","D","Fábio Reis","PSD",0],["SE","D","Gustinho Ribeiro","PP",0],["SE","D","Icaro de Valmir","Republicanos",0],["SE","D","João Daniel","PT",0],["SE","D","Yandra Moura","União",0],["TO","D","Fabio Vaz","Republicanos",0],["TO","D","Filipe Martins","PL",0],["TO","D","Iratã Abreu","PSDB",0],["TO","D","Jair Farias","União",0],["TO","D","Lucas Campelo","Republicanos",0],["TO","D","Professora Janad Valcari","PP",0],["TO","D","Ricardo Ayres","Republicanos",0],["TO","D","Sandoval Cardoso","Podemos",0]];
+
+// [partido, nota média 0–10 (Bolognesi, Ribeiro e Codato, 2023), faixa no estudo, padrão, observação]
+const PARTY=[
+ ["PSOL",1.28,"extrema-esquerda","O",""],["PCdoB",1.92,"esquerda","O",""],["PT",2.97,"esquerda","O",""],
+ ["PDT",3.92,"centro-esquerda","O",""],["PSB",4.05,"centro-esquerda","O",""],
+ ["PV",5.29,"centro","O","Federado com PT e PCdoB (Federação Brasil da Esperança): segue a federação."],
+ ["Rede",4.77,"centro","N",""],["Avante",6.32,"centro-direita","N",""],["Solidariedade",6.50,"centro-direita","N",""],
+ ["MDB",7.01,"direita","S","No limite entre centro-direita e direita."],["PSD",7.09,"direita","S","No limite entre centro-direita e direita."],
+ ["PSDB",7.11,"direita","S","No limite entre centro-direita e direita."],["Podemos",7.24,"direita","S",""],
+ ["Republicanos",7.78,"direita","S","Nota do antigo PRB."],["PL",7.78,"direita","S","Nota do antigo PR."],
+ ["Novo",8.13,"direita","S",""],["PP",8.20,"direita","S",""],
+ ["União",null,"direita","S","Fusão de DEM (8,57) e PSL (8,11)."],["PRD",null,"—","S","Fusão de PTB (6,10) e Patriota (8,55)."],
+ ["Missão",null,"não avaliado","S","Partido criado depois do estudo."],["Sem partido",null,"—","N",""]];
+const CLS={S:"Situação",O:"Oposição",N:"Neutro"};
+const PDEF=Object.fromEntries(PARTY.map(p=>[p[0],p[3]]));
+const pkey=p=>p[0]+"|"+p[1]+"|"+p[2];
+const pcls=pt=>(S.pmap&&S.pmap[pt])||PDEF[pt]||"N";
+const clsOf=p=>(S.povr&&S.povr[pkey(p)])||pcls(p[3]);
+function congCount(set){const r={S:{S:0,O:0,N:0,t:0},D:{S:0,O:0,N:0,t:0}};
+  for(const p of PARL) if(set.has(p[0])){const k=clsOf(p); r[p[1]][k]++; r[p[1]].t++;} return r;}
+
+
+// ---------- estado ----------
+let S={stage:0,P:{...DEFP},view:"geral",sort:"delta",exUF:"RS",pmap:{},povr:{},cgUF:"RS"};
+try{const s=JSON.parse(localStorage.getItem("fpe-proposta-v1")||"null"); if(s) S={...S,...s,P:{...DEFP,...(s.P||{})}};}catch(e){}
+const HV=(location.hash||"").replace("#",""); if(["geral","como","ufs","congresso"].includes(HV)) S.view=HV;
+function save(){try{localStorage.setItem("fpe-proposta-v1",JSON.stringify(S))}catch(e){}}
+
+// ---------- formatação ----------
+const nf=d=>new Intl.NumberFormat("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const f4=nf(4),f2=nf(2),f1=nf(1),f0=nf(0);
+const pct=(x,d=4)=>nf(d).format(x*100)+"%";
+const sgn=x=>x>TOL?"+":(x<-TOL?"−":"±");
+const pp=(x,d=4)=>sgn(x)+nf(d).format(Math.abs(x*100));
+const relv=(a,b)=>a/b-1;
+const rel=(a,b,d=1)=>{const r=(a/b-1)*100; if(Math.abs(r)<0.05) return "±0,0%"; return (r>0?"+":"−")+nf(d).format(Math.abs(r))+"%";};
+const cls=d=>d>TOL?"pos":(d<-TOL?"neg":"zero");
+const $=id=>document.getElementById(id);
+
+const STAGES=[
+ {t:"Regra atual",s:"Como o FPE de 2027 é dividido hoje",lbl:"Fatia em 2027 pela regra atual"},
+ {t:"Se nada for aprovado",s:"Regra do STF a partir de julho de 2027",lbl:"Fatia se nada for aprovado"},
+ {t:"Só a fórmula nova",s:"Redutor só no fator renda, sem proteção",lbl:"Fatia só com a fórmula nova"},
+ {t:"Proposta",s:"Fórmula nova + fundo de compensação",lbl:"Fatia na proposta"}];
+let PRO=proposal(S.P);
+const vals=st=>st===0?REF:(st===1?EXC:(st===2?NEWC:PRO.fin));
+
+// ---------- controles ----------
+const CTLS=["perda","popPeq","perdaPeq","ganho"];
+CTLS.forEach(k=>$(k).addEventListener("input",()=>{S.P[k]=+$(k).value; if(S.stage!==3) S.stage=3; update();}));
+$("reset").addEventListener("click",()=>{S.P={...DEFP};update();});
+$("ctaOn").addEventListener("click",()=>{S.stage=3;update();});
+$("ctaOff").addEventListener("click",()=>{S.stage=0;update();});
+$("sort").addEventListener("change",()=>{S.sort=$("sort").value;update();});
+$("exUF").innerHTML=[...UF].sort((a,b)=>a.name.localeCompare(b.name,"pt-BR")).map(u=>`<option value="${u.uf}">${u.name}</option>`).join("");
+$("exUF").addEventListener("change",()=>{S.exUF=$("exUF").value;update();});
+function showView(v){S.view=v; document.querySelectorAll(".view").forEach(x=>x.hidden=x.dataset.view!==v);
+  document.querySelectorAll(".vtab").forEach(t=>{const on=t.dataset.view===v; t.setAttribute("aria-selected",on); t.tabIndex=on?0:-1;});}
+document.querySelectorAll(".vtab").forEach(t=>t.addEventListener("click",()=>{showView(t.dataset.view);update();}));
+document.querySelector(".vtabs").addEventListener("keydown",e=>{if(e.key!=="ArrowRight"&&e.key!=="ArrowLeft") return; const ks=["geral","como","ufs","congresso"]; let k=ks.indexOf(S.view); k=(k+(e.key==="ArrowRight"?1:3))%4; showView(ks[k]); update(); $("v-"+ks[k]).focus();});
+showView(S.view);
+$("journey").addEventListener("click",e=>{const b=e.target.closest("button[data-st]"); if(!b) return; S.stage=+b.dataset.st; update();});
+
+// ---------- Congresso ----------
+const ALLSET=new Set(UF.map(u=>u.uf));
+function congRows(set,lblIn,lblOut,outSet){
+  const g=congCount(set), l=outSet?congCount(outSet):null, w=(x,t)=>(x/t*100).toFixed(2)+"%";
+  const row=(h,nm,tot,maj)=>{const a=g[h], okS=a.S>=maj, okT=a.t>=maj;
+    return `<div class="crow"><div class="ch"><b>${nm}</b><span>maioria absoluta: ${maj} de ${tot}</span></div>
+      <div class="cbar" role="img" aria-label="${nm}: ${a.t} parlamentares, ${a.S} da situação"><span class="cs" style="width:${w(a.S,tot)}"></span><span class="co" style="width:${w(a.O,tot)}"></span><span class="cn" style="width:${w(a.N,tot)}"></span><i style="left:${w(maj,tot)}" title="maioria absoluta"></i></div>
+      <div class="cl"><span>${lblIn}: <b>${a.t}</b> · situação <b>${a.S}</b><em class="${okS?"pos":"neg"}">${okS?"a situação sozinha atinge a maioria":(okT?"atinge a maioria com outros partidos":"abaixo da maioria")}</em></span><span class="mix"><i class="ds"></i>${a.S} sit. <i class="do"></i>${a.O} opos. <i class="dn"></i>${a.N} neutros</span></div>
+      ${l?`<div class="cl muted"><span>${lblOut}: <b>${l[h].t}</b></span><span class="mix">${l[h].S} sit. · ${l[h].O} opos. · ${l[h].N} neutros</span></div>`:""}</div>`;};
+  return row("S","Senado",81,41)+row("D","Câmara",513,257);
+}
+const SUB2T={AC:"Alan Rick disputa o 2º turno para governador em 25/10; se eleito, assume Gemil Júnior (União).",AM:"Omar Aziz disputa o 2º turno para governador em 25/10; se eleito, assume Cheila Moreira (PT).",TO:"Professora Dorinha disputa o 2º turno para governador em 25/10; se eleita, assume Professora Lu (União)."};
+function renderCong(v){
+  const d=v.map((x,i)=>relv(x,REF[i]));
+  const keep=new Set(UF.filter((u,i)=>v[i]-REF[i]>=-TOL).map(u=>u.uf)), lose=new Set(UF.filter((u,i)=>v[i]-REF[i]<-TOL).map(u=>u.uf));
+  $("congBig").innerHTML = S.stage===0
+    ? `<div class="ctitle">Composição do Congresso a partir de fevereiro de 2027</div>`+congRows(ALLSET,"Total")+`<p class="law">Escolha uma etapa no topo para ver quais bancadas são de UFs que não perdem.</p>`
+    : `<div class="ctitle">${STAGES[S.stage].t}: votos das UFs que não perdem</div>`+congRows(keep,"UFs que não perdem","UFs que perdem",lose);
+  const sel=$("cgUF");
+  if(!sel.options.length) sel.innerHTML='<option value="ALL">Todas as UFs</option>'+[...UF].sort((a,b)=>a.name.localeCompare(b.name,"pt-BR")).map(u=>`<option value="${u.uf}">${u.name}</option>`).join("");
+  sel.value=S.cgUF||"RS";
+  const nD={},nS={}; PARL.forEach(p=>{const o=p[1]==="D"?nD:nS; o[p[3]]=(o[p[3]]||0)+1;});
+  $("ptab").innerHTML=PARTY.filter(p=>nD[p[0]]||nS[p[0]]).map(p=>{const k=pcls(p[0]),ch=k!==p[3];
+    return `<div class="pc ${k}${ch?" ch2":""}"><div class="t"><b>${p[0]}</b><select data-party="${p[0]}" aria-label="Classificação do ${p[0]}">${["S","O","N"].map(x=>`<option value="${x}"${x===k?" selected":""}>${CLS[x]}</option>`).join("")}</select></div>
+      <div class="m">${nD[p[0]]||0} dep. · ${nS[p[0]]||0} sen. · ${p[1]!=null?"nota "+f2.format(p[1])+" ("+p[2]+")":p[2]}${p[4]?"<br>"+p[4]:""}${ch?"<br><b>alterado (padrão: "+CLS[p[3]]+")</b>":""}</div></div>`;}).join("");
+  const ord=UF.map((u,i)=>i).sort((a,b)=>d[b]-d[a]);
+  const sp=o=>`<span class="sp"><span class="s">${o.S}</span> · <span class="o">${o.O}</span> · <span class="n">${o.N}</span></span>`;
+  const mini=o=>`<div class="mini" aria-hidden="true"><span class="cs" style="width:${o.t?o.S/o.t*100:0}%"></span><span class="co" style="width:${o.t?o.O/o.t*100:0}%"></span><span class="cn" style="width:${o.t?o.N/o.t*100:0}%"></span></div>`;
+  const tr=(nm,o,dd,c)=>`<tr class="${c||""}"><td class="name">${nm}</td><td class="${dd==null?"":cls(dd)}">${dd==null?"":rel(1+dd,1)}</td><td>${o.S.t}</td><td>${sp(o.S)}</td><td>${o.D.t}</td><td>${sp(o.D)}</td><td class="hide-sm">${mini(o.D)}</td></tr>`;
+  $("cgTbl").querySelector("tbody").innerHTML=ord.map(i=>tr(UF[i].name+`<span class="reg">${UF[i].uf}</span>`,congCount(new Set([UF[i].uf])),d[i],i===iRS?"row-rs":"")).join("")
+    +tr("UFs que não perdem",congCount(keep),null,"total")+tr("UFs que perdem",congCount(lose),null,"total")+tr("Brasil",congCount(ALLSET),null,"total");
+  const f=S.cgUF||"RS", L=PARL.filter(p=>f==="ALL"||p[0]===f).sort((a,b)=>a[0].localeCompare(b[0])||(a[1]===b[1]?a[2].localeCompare(b[2],"pt-BR"):(a[1]==="S"?-1:1)));
+  $("cgList").innerHTML=`<table class="cgl"><thead><tr><th>UF</th><th>Casa</th><th>Nome</th><th>Partido</th><th>Classificação</th></tr></thead><tbody>`+L.map(p=>{const k=clsOf(p),ov=!!(S.povr&&S.povr[pkey(p)]);
+    return `<tr class="${ov?"ov":""}"><td>${p[0]}</td><td>${p[1]==="S"?"Senado <span class=\"muted\">até "+(p[4]===31?"2031":"2035")+"</span>":"Câmara"}</td><td>${p[2]}</td><td>${p[3]}</td><td><select data-p="${pkey(p)}" aria-label="Classificação de ${p[2]}">${["S","O","N"].map(x=>`<option value="${x}"${x===k?" selected":""}>${CLS[x]}${x===pcls(p[3])?" (partido)":""}</option>`).join("")}</select>${ov?' <span class="muted">ajuste individual</span>':""}</td></tr>`;}).join("")+`</tbody></table>`
+    +(SUB2T[f]?`<p class="law">${SUB2T[f]}</p>`:(f==="ALL"?`<p class="law">${Object.values(SUB2T).join(" ")}</p>`:""));
+}
+$("cgUF").addEventListener("change",()=>{S.cgUF=$("cgUF").value;update();});
+$("ptab").addEventListener("change",e=>{const t=e.target.closest("select[data-party]"); if(!t) return; S.pmap=S.pmap||{}; if(t.value===PDEF[t.dataset.party]) delete S.pmap[t.dataset.party]; else S.pmap[t.dataset.party]=t.value; update();});
+$("cgList").addEventListener("change",e=>{const t=e.target.closest("select[data-p]"); if(!t) return; S.povr=S.povr||{}; const p=PARL.find(x=>pkey(x)===t.dataset.p); if(p&&t.value===pcls(p[3])) delete S.povr[t.dataset.p]; else S.povr[t.dataset.p]=t.value; update();});
+$("cgReset").addEventListener("click",()=>{S.pmap={};S.povr={};update();});
+
+// ---------- render ----------
+let last=null;
+function bar(dd,max){const w=Math.min(50,Math.abs(dd)/max*50);
+  if(Math.abs(dd)<=1e-6) return '<div class="dbar" aria-hidden="true"><span class="axis"></span></div>';
+  return `<div class="dbar" aria-hidden="true"><span class="axis"></span><span class="b ${dd>0?"pos":"neg"}" style="width:${w}%"></span></div>`;}
+function fundText(i){const P=S.P;
+  if(PRO.ent[i]>0) return `Corta no teto de +${f0.format(P.ganho*100)}% e entrega ${f2.format(PRO.ent[i]*100)} p.p. ao fundo`;
+  if(PRO.rec[i]>0) return PRO.small[i]? `Recebe ${f2.format(PRO.rec[i]*100)} p.p. do fundo${P.perdaPeq>0?" até chegar a −"+f1.format(P.perdaPeq*100)+"%":" e não perde nada"}` : `Recebe ${f2.format(PRO.rec[i]*100)} p.p. do fundo até chegar a −${f1.format(P.perda*100)}%`;
+  return NEWC[i]>=REF[i]? "Nada: o ganho fica abaixo do teto" : "Nada: a perda fica dentro do limite";}
+
+function update(){
+  PRO=proposal(S.P);
+  const st=S.stage, v=vals(st), dpp=v.map((x,i)=>x-REF[i]), dr=v.map((x,i)=>x/REF[i]-1);
+  last={v,dpp,dr,st};
+  // journey
+  $("journey").innerHTML=STAGES.map((s,k)=>{const x=vals(k)[iRS], d=x-REF[iRS];
+    const nne=sum(vals(k).filter((_,i)=>isNNECO(UF[i])));
+    return `<button type="button" class="step${k===3?" final":""}" data-st="${k}" aria-pressed="${k===st}"><span class="no">Etapa ${k+1}</span><span class="tt">${s.t}</span><span class="ss">${s.s}</span>
+      <span class="rsv"><b>${pct(x,2)}</b>${k?`<span class="${cls(d)}">${rel(x,REF[iRS])}</span>`:'<span class="muted">referência</span>'}<em>RS · N/NE/CO: ${pct(nne,2)}</em></span></button>`;}).join("");
+  // painel
+  $("stEyebrow").textContent=`Etapa ${st+1} de 4`;
+  $("panelTitle").textContent=STAGES[st].t;
+  $("formula").innerHTML=[
+    "fatia = 64,43% × <em>coef. fixo de 1989</em><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + 35,57% × <em>coef. da LC 143</em><br>LC 143 = (FP + FR) × (1 − red)",
+    "fatia = coef. da LC 143<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = (FP + FR) × (1 − <em>red</em>)<br>red = (renda − VR) ÷ VR",
+    "fatia = FP + FR × (1 − <em>red</em>)<br>o redutor corta só o fator renda;<br>FP com piso 1,2% e teto 7%",
+    `fatia = fórmula nova, limitada entre<br>atual × (1 − <em>${f1.format(S.P.perda*100)}%</em>) e atual × (1 + <em>${f1.format(S.P.ganho*100)}%</em>)<br>+ devolução da sobra do fundo`][st];
+  const rs=i=>pct(vals(i)[iRS],2);
+  $("story").innerHTML=[
+    `Ponto de partida. Em 2027, pela regra atual, <b>64,43%</b> do FPE seguem as fatias fixas de 1989 e <b>35,57%</b> seguem a fórmula de população e renda de 2013. O RS fica com <b>${rs(0)}</b>. As outras etapas comparam com esta.`,
+    `O STF manteve as regras atuais só até 30/6/2027. Sem lei nova, todo o FPE passa a seguir a fórmula de 2013, e o RS cai para <b>${rs(1)}</b> (${rel(EXC[iRS],REF[iRS])}).`,
+    `A correção: o desconto pela renda deixa de cortar a parte da população. O RS iria a <b>${rs(2)}</b> (${rel(NEWC[iRS],REF[iRS])}), mas sem proteção as mudanças são grandes demais: SP ${rel(NEWC[IDX.SP],REF[IDX.SP],0)}, TO ${rel(NEWC[IDX.TO],REF[IDX.TO],0)}.`,
+    `O fundo limita as mudanças: ninguém perde mais de <b>${f1.format(S.P.perda*100)}%</b>, UFs com menos de ${f1.format(S.P.popPeq/1e6)} milhões de habitantes perdem no máximo <b>${f1.format(S.P.perdaPeq*100)}%</b> e ninguém ganha mais de <b>${f1.format(S.P.ganho*100)}%</b>. A sobra volta para todos. O RS fica com <b>${rs(3)}</b> (${rel(PRO.fin[iRS],REF[iRS])}).`][st];
+  $("ctaOn").setAttribute("aria-pressed",st===3); $("ctaOn").textContent=st===3?"Proposta aplicada":"Ver a proposta";
+  CTLS.forEach(k=>{$(k).value=S.P[k]; document.querySelector(`[data-k="${k}"]`).classList.toggle("changed",Math.abs(S.P[k]-DEFP[k])>1e-9); document.querySelector(`[data-k="${k}"]`).classList.toggle("off",st!==3);});
+  $("perdaV").textContent="−"+f1.format(S.P.perda*100)+"%"; $("perdaPeqV").textContent=(S.P.perdaPeq?"−":"")+f1.format(S.P.perdaPeq*100)+"%";
+  $("ganhoV").textContent="+"+f1.format(S.P.ganho*100)+"%"; $("popPeqV").textContent=f1.format(S.P.popPeq/1e6)+" mi hab.";
+  const smallList=UF.filter(u=>u.pop<S.P.popPeq).map(u=>u.uf);
+  $("popPeqHelp").textContent=`Proposta: 2,5 milhões. Hoje alcança: ${smallList.length?smallList.join(", "):"nenhuma UF"}.`;
+  $("rulesNote").textContent=st===3?"Mova os controles para testar outras regras. O painel recalcula tudo.":"Os controles valem para a etapa 4. Mexer em um deles abre a proposta.";
+  const def=CTLS.every(k=>Math.abs(S.P[k]-DEFP[k])<1e-9);
+  $("fundStatus").className="statusline"+(PRO.sobra<-1e-9?" bad":"");
+  $("fundStatus").innerHTML = PRO.sobra>=-1e-9
+    ? `Fundo arrecada <b class="num">${f2.format(PRO.arr*100)}</b> p.p., paga <b class="num">${f2.format(PRO.pag*100)}</b> e sobram <b class="num">${f2.format(PRO.sobra*100)}</b> p.p., devolvidos a todos (${rel(1+PRO.k,1,2)} em cada UF).`
+    : `Falta dinheiro: o fundo arrecada ${f2.format(PRO.arr*100)} p.p. e precisa pagar ${f2.format(PRO.pag*100)}. A diferença é cortada de todos na proporção (${rel(1+PRO.k,1,2)}), e as perdas passam um pouco do limite.`;
+  $("panelNote").innerHTML=`N/NE/CO nesta etapa: <b class="num">${pct(sum(v.filter((_,i)=>isNNECO(UF[i]))),2)}</b> (regra atual: ${pct(sum(REF.filter((_,i)=>isNNECO(UF[i]))),2)}).`+(def?"":" <b>Regras alteradas.</b>");
+
+  // mapa + placar
+  $("mapTitle").textContent= st===0 ? "Mapa: a fatia de cada estado no FPE de 2027, pela regra atual" : `Mapa: quem ganha e quem perde · ${STAGES[st].t.toLowerCase()} × regra atual`;
+  $("mapSub").textContent= st===0 ? "Cor mais escura, fatia maior. Passe o mouse sobre um estado para ver as quatro etapas." : "Azul ganha, vermelho perde, cinza fica igual. O número é a variação contra a regra atual de 2027.";
+  const G=[],Lo=[],Z=[]; UF.forEach((u,i)=>(dpp[i]>TOL?G:(dpp[i]<-TOL?Lo:Z)).push(i));
+  if(st===0){
+    $("scoreTitle").textContent="Como o bolo está dividido hoje";
+    const regs=REG.map(([k,nm])=>[nm,sum(REF.filter((_,i)=>UF[i].reg===k)),k]); const mx=Math.max(...regs.map(r=>r[1]));
+    $("scoreBody").innerHTML=`<div class="regshares">${regs.map(([nm,x,k])=>`<span>${nm}${k==="S"?' <span class="chip rs">RS</span>':""}</span><span class="rb" style="width:${(x/mx*100).toFixed(1)}%"></span><b>${pct(x,2)}</b>`).join("")}</div>`;
+    $("senate").innerHTML=`<div class="ctitle">Congresso a partir de fevereiro de 2027</div>`+congRows(ALLSET,"Total");
+  } else {
+    $("scoreTitle").textContent="Quem ganha e quem perde";
+    const chip=(i,k)=>`<span class="chip ${k}${i===iRS?" rs":""}" title="${UF[i].name}: ${rel(v[i],REF[i])}">${UF[i].uf}</span>`;
+    const byD=(a,b)=>Math.abs(dr[b])-Math.abs(dr[a]);
+    $("scoreBody").innerHTML=`<div class="tally"><div class="tile g"><span class="n">${G.length}</span><span class="l">ganham</span></div><div class="tile p"><span class="n">${Lo.length}</span><span class="l">perdem</span></div><div class="tile z"><span class="n">${Z.length}</span><span class="l">ficam iguais</span></div></div>
+      <div class="chips-row" style="margin-top:10px"><span>Ganham</span><div class="chips">${G.length?G.sort(byD).map(i=>chip(i,"g")).join(""):'<span class="muted">nenhuma</span>'}</div></div>
+      <div class="chips-row" style="margin-top:6px"><span>Perdem</span><div class="chips">${Lo.length?Lo.sort(byD).map(i=>chip(i,"p")).join(""):'<span class="muted">nenhuma</span>'}</div></div>`;
+    const keep=new Set(UF.filter((u,i)=>dpp[i]>=-TOL).map(u=>u.uf)), lose=new Set(Lo.map(i=>UF[i].uf));
+    $("senate").innerHTML=`<div class="ctitle">Votos das bancadas das UFs que não perdem</div>`+congRows(keep,"UFs que não perdem","UFs que perdem",lose)
+      +`<p class="law" style="margin:4px 0 0">O traço marca a maioria absoluta exigida para lei complementar. Classificação editável na aba Congresso.</p>`;
+  }
+  renderMap(v,dpp,dr);
+
+  // RS
+  const rsV=v[iRS], rsD=dpp[iRS];
+  $("rsLbl").textContent=STAGES[st].lbl;
+  $("rsNew").innerHTML=f4.format(rsV*100)+"<small>%</small>";
+  const ch=$("rsChip"); ch.className="delta-chip "+cls(rsD);
+  ch.textContent= st===0 ? "● referência" : (rsD>TOL?"▲ ":(rsD<-TOL?"▼ ":"● "))+rel(rsV,REF[iRS])+" · "+pp(rsD,2)+" p.p.";
+  [0,1,2,3].forEach(k=>{const e=$("rsK"+k); e.textContent=pct(vals(k)[iRS],4)+(k?" ("+rel(vals(k)[iRS],REF[iRS])+")":""); e.className=k?cls(vals(k)[iRS]-REF[iRS]):"";});
+  if(st===0){ const rk=[...REF].sort((a,b)=>b-a).indexOf(REF[iRS])+1; $("rsRank").textContent=rk+"º"; $("rsRankLbl").textContent="Posição pela fatia (27 UFs)"; }
+  else { const above=dr.filter(x=>x>dr[iRS]+1e-9).length, ties=dr.filter(x=>Math.abs(x-dr[iRS])<=1e-9).length-1;
+    $("rsRank").textContent=(above+1)+"º"+(ties?` (empatado com ${ties})`:""); $("rsRankLbl").textContent="Posição no ganho %"; }
+  $("rsNNE").textContent=pct(sum(v.filter((_,i)=>isNNECO(UF[i]))),2);
+
+  // fundo (visão geral)
+  $("fundCard").hidden=st!==3;
+  $("ftIn").textContent=f2.format(PRO.arr*100); $("ftInS").textContent=`${PRO.capped.length} UFs entregam o que passa de +${f1.format(S.P.ganho*100)}%`;
+  $("ftOut").textContent=f2.format(PRO.pag*100); $("ftOutS").textContent=`${PRO.fBig.length} UFs grandes recebem ${f2.format(PRO.pagBig*100)} e ${PRO.fSmall.length} pequenas, ${f2.format(PRO.pagSmall*100)}`;
+  $("ftRestL").textContent=PRO.sobra>=-1e-9?"Sobra devolvida a todas as UFs":"Falta, cortada de todas as UFs";
+  $("ftRest").textContent=(PRO.sobra>=0?"+":"−")+f2.format(Math.abs(PRO.sobra*100)); $("ftRestS").textContent=`Muda a fatia de cada UF em ${rel(1+PRO.k,1,2)}`;
+  $("fundWhy").innerHTML=`Por que sobra? Quem ganha tem fatias pequenas e quem perde tem fatias grandes. Ficar com ${f0.format(S.P.ganho*100)}% a mais sobre pouco libera menos do que perder ${f0.format(S.P.perda*100)}% sobre muito. Veja a conta na aba Como funciona.`;
+
+  renderComo(); renderUFs(v,dpp,dr); renderCong(v); save();
+}
+
+// ---------- Como funciona ----------
+function renderComo(){
+  const i=IDX[S.exUF]??iRS, u=UF[i], P=S.P; $("exUF").value=u.uf;
+  const base=W_BASE*LC62[u.uf], ex=(1-W_BASE)*EXC[i];
+  $("calcNow").innerHTML=`<div class="ttl">Como se chega aos ${pct(REF[i])} de ${u.name} em 2027</div>
+    <div class="k"><span>Fatia fixa de 1989 (Anexo da LC 62)</span><b>${pct(LC62[u.uf])}</b></div>
+    <div class="k"><span>Fatia pela fórmula de 2013 (LC 143)</span><b>${pct(EXC[i])}</b></div>
+    <div class="k"><span>Peso da parte fixa</span><b>64,43%</b></div><div class="k"><span>Peso da fórmula</span><b>35,57%</b></div>
+    <div class="eq">64,43% × ${pct(LC62[u.uf])} + 35,57% × ${pct(EXC[i])} = <em>${f4.format(base*100)}</em> + <em>${f4.format(ex*100)}</em> = <em>${pct(REF[i])}</em><br>Se nada for aprovado, só a fórmula de 2013 vale: <em>${pct(EXC[i])}</em> (${rel(EXC[i],REF[i])}).</div>`;
+  const red=LAW.L[i], fp=LAW.G[i], fr=LAW.I[i];
+  const rows=[["População da UF ÷ população do Brasil",pct(LAW.E[i],3),pct(LAW.E[i],3)],
+    ["Com piso de 1,2% e teto de 7%",pct(LAW.F[i],3),pct(LAW.F[i],3)],
+    ["<b>Metade pela população</b> (FP)",pct(fp,3),pct(fp,3)],
+    ["<b>Metade pela renda</b> (FR)",pct(fr,3),pct(fr,3)],
+    [`Desconto pela renda (renda R$ ${f2.format(u.rd)} contra VR de R$ ${f2.format(NAC*0.72)})`,pct(red,1),pct(red,1)],
+    ["O desconto incide sobre…","FP e FR","só FR"],
+    ["Conta",`(${f2.format(fp*100)} + ${f2.format(fr*100)}) × ${f3(1-Math.min(1,red))}`,`${f2.format(fp*100)} + ${f2.format(fr*100)} × ${f3(Math.max(0,1-red))}`],
+    ["<b>Resultado antes dos ajustes</b>",`<b>${pct(LAW.raw[i],3)}</b>`,`<b>${pct(NEW.raw[i],3)}</b>`],
+    ["Depois do mínimo de 0,5% e do ajuste para somar 100%",`<b>${pct(EXC[i])}</b>`,`<b>${pct(NEWC[i])}</b>`]];
+  $("recipe").querySelector("tbody").innerHTML=rows.map((r,k)=>`<tr class="${k>=7?"total":""}${i===iRS&&k===8?" row-rs":""}"><td class="name" style="white-space:normal">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join("");
+  $("recipeNote").textContent = red>0
+    ? `Com o desconto de ${pct(red,1)} só na metade da renda, ${u.name} passa de ${pct(EXC[i],2)} para ${pct(NEWC[i],2)} na fórmula (${rel(NEWC[i],EXC[i])}).`
+    : `${u.name} tem renda abaixo do valor de referência, sem desconto. As duas fórmulas dão o mesmo número antes do ajuste; a fatia final muda só porque a de outros estados muda (${rel(NEWC[i],EXC[i])}).`;
+  // 3
+  const ordP=UF.map((u,k)=>k).sort((a,b)=>NEWC[b]/REF[b]-NEWC[a]/REF[a]);
+  const pick=[...new Set([...ordP.slice(0,3),iRS,...ordP.slice(-3),i])];
+  $("pureTbl").querySelector("tbody").innerHTML=pick.map(k=>`<tr class="${k===iRS?"row-rs":""}"><td class="name">${UF[k].name}<span class="reg">${UF[k].uf}</span></td><td>${pct(REF[k],2)}</td><td>${pct(NEWC[k],2)}</td><td class="${cls(NEWC[k]-REF[k])}">${rel(NEWC[k],REF[k],0)}</td></tr>`).join("");
+  // 4 regras
+  const smallList=UF.filter(x=>x.pop<P.popPeq).map(x=>x.uf);
+  $("rules").innerHTML=[
+    `<b>Fórmula da lei, com o desconto só na renda.</b> Todo o FPE é repartido por ela.`,
+    `<b>Ninguém perde mais de ${f1.format(P.perda*100)}%</b> em relação à regra atual de 2027. Quem perderia mais recebe a diferença do fundo.`,
+    `<b>UFs com menos de ${f1.format(P.popPeq/1e6)} milhões de habitantes ${P.perdaPeq?"perdem no máximo "+f1.format(P.perdaPeq*100)+"%":"não perdem nada"}</b> (${smallList.join(", ")||"nenhuma"}). Governar um estado tem um custo mínimo, por menor que ele seja: a mesma lógica do piso de 1,2% da população.`,
+    `<b>Ninguém ganha mais de ${f1.format(P.ganho*100)}%.</b> O que a fórmula der acima disso vai para o fundo.`,
+    `<b>A sobra volta para todos.</b> O que sobra no fundo depois das compensações é devolvido a todas as UFs, na proporção do que cada uma já recebe.`].map((t,k)=>`<li><span class="k">${k+1}</span><span>${t}</span></li>`).join("");
+  const ufl=a=>a.map(k=>UF[k].uf).join(", ");
+  $("flow").innerHTML=`<div class="col"><div class="fb g"><b>Quem ganharia demais</b><span class="n">${f2.format(PRO.arr*100)} p.p.</span><span>${PRO.capped.length} UFs entregam o que passa de +${f1.format(P.ganho*100)}%: ${ufl(PRO.capped)}</span></div></div>
+    <div class="arr" aria-hidden="true">→</div>
+    <div class="fb f"><b>Fundo</b><span>Recebe o excesso dos que ganhariam demais e paga o que falta para os outros chegarem ao piso.</span></div>
+    <div class="arr" aria-hidden="true">→</div>
+    <div class="col"><div class="fb l"><b>Quem perderia demais</b><span class="n">${f2.format(PRO.pag*100)} p.p.</span><span>${ufl(PRO.fBig)}${PRO.fSmall.length?" e as pequenas "+ufl(PRO.fSmall):""}</span></div>
+    <div class="fb r"><b>${PRO.sobra>=0?"Sobra":"Falta"}: ${f2.format(Math.abs(PRO.sobra)*100)} p.p.</b><span>${PRO.sobra>=0?"Volta a todas as UFs":"É cortada de todas as UFs"}, na proporção do que recebem (${rel(1+PRO.k,1,2)}).</span></div></div>`;
+  const gBase=sum(PRO.capped.map(k=>REF[k])), lBase=sum(PRO.fBig.map(k=>REF[k]));
+  const brow=(c,t,sub,b,fr,cap)=>`<div class="${c}"><div class="lab"><b>${t}</b><span class="muted">${sub}</span></div><div class="track"><span class="base" style="width:${(b*100).toFixed(2)}%"></span><span class="slice" style="width:${(b*fr*100).toFixed(2)}%"></span></div><div class="cap">${cap}</div></div>`;
+  $("bases").innerHTML=brow("g",`As ${PRO.capped.length} UFs que ganham até o teto: fatias pequenas`,`somam ${pct(gBase,1)} do FPE hoje`,gBase,P.ganho,`${f0.format(P.ganho*100)}% de ${pct(gBase,1)} = ${f2.format(gBase*P.ganho*100)} p.p. que elas mantêm`)
+    +brow("l",`As ${PRO.fBig.length} UFs grandes que perdem até o piso: fatias grandes`,`somam ${pct(lBase,1)} do FPE hoje`,lBase,P.perda,`${f0.format(P.perda*100)}% de ${pct(lBase,1)} = ${f2.format(lBase*P.perda*100)} p.p. que elas aceitam perder`)
+    +`<p class="law" style="margin:0">A barra inteira representa 100% do FPE; a parte escura é o ganho mantido ou a perda aceita.</p>`;
+  const t=(x)=>f2.format(x*100);
+  $("conta").querySelector("tbody").innerHTML=[
+    ["Quanto a fórmula pura tira de quem perde e dá a quem ganha",t(PRO.G),""],
+    [`(−) Ganho que as UFs ganhadoras mantêm: até +${f1.format(P.ganho*100)}% sobre a própria fatia`,t(PRO.K),""],
+    ["= Arrecadado pelo fundo",t(PRO.arr),"eq"],
+    ["Perda total que a fórmula pura causaria",t(PRO.G),""],
+    [`(−) Perda que as UFs perdedoras aceitam: até −${f1.format(P.perda*100)}% (as pequenas, ${f1.format(P.perdaPeq*100)}%)`,t(PRO.A),""],
+    [`= Pago pelo fundo (${t(PRO.pagBig)} às UFs grandes e ${t(PRO.pagSmall)} às pequenas)`,t(PRO.pag),"eq"],
+    [`${PRO.sobra>=0?"Sobra":"Falta"} = perda aceita − ganho mantido = ${t(PRO.A)} − ${t(PRO.K)}`,(PRO.sobra>=0?"":"−")+t(Math.abs(PRO.sobra)),"fin"]]
+    .map(r=>`<tr class="${r[2]}"><td>${r[0]}</td><td>${r[1]}</td></tr>`).join("");
+  $("contaNote").textContent=`A sobra existe enquanto a perda aceita pelos perdedores for maior que o ganho mantido pelos ganhadores.`+(CTLS.every(k=>Math.abs(P[k]-DEFP[k])<1e-9)?" Com as regras da proposta, a margem é pequena: um teto de ganho de cerca de 11,4% já zeraria a sobra.":"");
+  // 5 exemplos
+  const exs=[...new Set(["SP","RS","BA","TO","MT",u.uf].map(k=>IDX[k]))];
+  $("exTbl").querySelector("tbody").innerHTML=exs.map(k=>`<tr class="${k===iRS?"row-rs":""}"><td class="name">${UF[k].name}${PRO.small[k]?'<span class="tag2 small">pequena</span>':""}</td><td>${pct(REF[k],2)}</td><td>${pct(NEWC[k],2)} <span class="${cls(NEWC[k]-REF[k])}">(${rel(NEWC[k],REF[k],0)})</span></td><td class="what">${fundText(k)}</td><td>${pct(PRO.fin[k],2)}</td><td class="${cls(PRO.fin[k]-REF[k])}">${rel(PRO.fin[k],REF[k])}</td></tr>`).join("");
+}
+const f3=x=>nf(3).format(x);
+
+// ---------- Por UF ----------
+function renderUFs(v,dpp,dr){
+  $("sort").value=S.sort; $("ufBarH").textContent=S.stage===0?"Variação (etapa 1: referência)":`Variação · ${STAGES[S.stage].t}`;
+  const RO={N:0,NE:1,CO:2,SE:3,S:4}; let o=UF.map((u,i)=>i);
+  if(S.sort==="delta") o.sort((a,b)=>dr[b]-dr[a]||REF[b]-REF[a]); else if(S.sort==="region") o.sort((a,b)=>RO[UF[a].reg]-RO[UF[b].reg]||dr[b]-dr[a]);
+  else if(S.sort==="ref") o.sort((a,b)=>REF[b]-REF[a]); else o.sort((a,b)=>UF[a].name.localeCompare(UF[b].name,"pt-BR"));
+  const mU=Math.max(0.05,...dr.map(Math.abs));
+  const fund=i=>PRO.ent[i]>0?`<span class="neg">−${f2.format(PRO.ent[i]*100)}</span>`:(PRO.rec[i]>0?`<span class="pos">+${f2.format(PRO.rec[i]*100)}</span>`:'<span class="muted">0</span>');
+  $("ufTbl").querySelector("tbody").innerHTML=o.map(i=>{const u=UF[i];
+    return `<tr data-i="${i}" class="${i===iRS?"row-rs":""}" tabindex="0"><td class="name">${u.name}<span class="reg">${u.uf} · ${u.reg}</span>${PRO.small[i]?'<span class="tag2 small">pequena</span>':""}</td>
+    <td>${pct(REF[i],3)}</td><td>${pct(EXC[i],3)} <span class="${cls(EXC[i]-REF[i])}" style="font-size:11px">${rel(EXC[i],REF[i],0)}</span></td><td>${pct(NEWC[i],3)} <span class="${cls(NEWC[i]-REF[i])}" style="font-size:11px">${rel(NEWC[i],REF[i],0)}</span></td>
+    <td>${fund(i)}</td><td><b>${pct(PRO.fin[i],3)}</b></td><td class="barcell">${bar(dr[i],mU)}</td><td class="${cls(dpp[i])}">${S.stage?rel(v[i],REF[i]):"—"}</td></tr>`;}).join("");
+  const agg=(f,a)=>sum(a.filter((_,i)=>f(UF[i])));
+  const rows=REG.map(([k,nm])=>({nm,f:u=>u.reg===k,rs:k==="S"})).concat([{nm:"Bloco N/NE/CO",f:isNNECO,tot:1},{nm:"Bloco S/SE",f:u=>!isNNECO(u),tot:1}]);
+  $("regTbl").querySelector("tbody").innerHTML=rows.map(r=>{const a=agg(r.f,REF),n=agg(r.f,EXC),p=agg(r.f,NEWC),q=agg(r.f,PRO.fin);
+    return `<tr class="${r.tot?"total":""}${r.rs?" row-rs":""}"><td class="name">${r.nm}${r.rs?' <span class="reg">inclui RS</span>':""}</td><td>${pct(a,2)}</td><td>${pct(n,2)}</td><td>${pct(p,2)}</td><td><b>${pct(q,2)}</b></td><td class="${cls(q-a)}">${rel(q,a)}</td><td class="${cls(q-n)}">${rel(q,n)}</td></tr>`;}).join("");
+  const ne=agg(u=>u.reg==="NE",PRO.fin), nen=agg(u=>u.reg==="NE",EXC);
+  $("regSub").textContent=`Nordeste: ${pct(ne,2)} na proposta e ${pct(nen,2)} se nada for aprovado.`;
+}
+
+// ---------- tooltip ----------
+const tip=$("tip");
+function showTip(el,x,y){ if(!last) return; const i=+el.dataset.i,u=UF[i];
+  const ln=(t,a)=>`<dt>${t}</dt><dd>${pct(a,3)}${a===REF[i]?"":` <span class="${cls(a-REF[i])}">${rel(a,REF[i])}</span>`}</dd>`;
+  tip.innerHTML=`<h4>${u.name} <span class="muted" style="font-weight:500">${REGNAME[u.reg]}</span></h4><dl>
+    <dt>População</dt><dd>${f0.format(u.pop)}</dd><dt>Renda per capita</dt><dd>R$ ${f2.format(u.rd)}</dd>
+    ${ln("1 · Regra atual",REF[i])}${ln("2 · Se nada for aprovado",EXC[i])}${ln("3 · Só a fórmula nova",NEWC[i])}${ln("4 · Proposta",PRO.fin[i])}</dl>
+    <p style="margin:6px 0 0;color:var(--ink-2)">Fundo: ${fundText(i)}.</p>`;
+  tip.hidden=false; const r=tip.getBoundingClientRect(); let lx=x+14, ly=y+14;
+  if(lx+r.width>innerWidth-8) lx=x-r.width-14; if(ly+r.height>innerHeight-8) ly=Math.max(8,innerHeight-r.height-8);
+  tip.style.left=lx+"px"; tip.style.top=ly+"px";}
+const tb=$("ufTbl").querySelector("tbody");
+tb.addEventListener("mousemove",e=>{const tr=e.target.closest("tr[data-i]"); if(tr) showTip(tr,e.clientX,e.clientY); else tip.hidden=true;});
+tb.addEventListener("mouseleave",()=>tip.hidden=true);
+tb.addEventListener("focusin",e=>{const tr=e.target.closest("tr[data-i]"); if(tr){const r=tr.getBoundingClientRect(); showTip(tr,r.left+40,r.bottom);}});
+tb.addEventListener("focusout",()=>tip.hidden=true);
+
+// ---------- mapa ----------
+const BRMAP = {"viewBox":"0 0 613 639","paths":{"AC":"m 30.732574,238.03114 -2.08,-0.04 0.54,-1.81 -0.21,-0.83 -0.25,-0.49 -1.25,-0.7 -0.14,-0.45 0.27,-1.15 -0.77,-1.95 -1.09,-0.64 -5.6,-1.25 -7.34,-0.19 0.27,-0.56 2.49,-2.26 0.89,-1.23 0.29,-1.2 -0.22,-1.23 -0.68,-0.91 -0.83,-0.44 -1.68,-2.95 -0.77,-0.44 -0.9,-0.19 -1.13,-1.13 -0.92,-2.38 -2,-1.53 -0.98,-3.62 -0.87,-1.64 -1.88,-1.08 -0.08,-1.17 0.81,0.1 0.42,-0.52 0.07,-0.67 -0.2,-0.42 -2.12,-0.93 -0.36,-0.66 -2.16999996,-1.89 0.04,-0.37 0.62,-0.05 0.49999996,-1.32 -0.01,-1.31 3.01,-0.39 0.5,-0.39 -0.22,-1.35 -1.17,-1.57 0,0 17.95,7.48 23.66,5.66 12.14,3.14 26.44,14.17 28.509996,12.13 0,0 2.97,1.26 0,0 -0.3,0.48 -1.57,0.66 -2.09,1.59 -2.86,2.79 -1.65,0.86 -0.66,-0.18 -1.53,0.18 -0.05,0.56 -1.92,1.3 -2.08,0.99 -1.439996,1.83 -0.44,1.18 -0.61,0.28 -1.17,-0.75 -0.76,-0.13 -2.37,0.05 -0.68,0.26 -0.63,0.45 -0.36,0.86 -2.44,3.48 -3.77,1.25 -0.84,0.69 -1.94,0.51 -1.03,0.03 0.08,-2.11 -1.36,0.2 -3.55,-0.77 -5.24,-0.47 -5.09,0.38 -0.66,-0.58 -2.27,-0.17 -3.56,1.83 -2.73,0.62 -1.68,-0.67 -1.4,-1.44 -1.64,1.16 0.04,-17.55 0.05,-1.1 0.47,-0.71 0.07,-2.35 -0.26,-0.88 0.97,-1.18 0.48,-1.14 -1.16,0.2 -2.97,2.59 -1.6,1.01 -2.06,2.38 -1.95,0.67 -0.65,1.08 -1.81,0.99 z","AL":"m 562.17257,230.56114 -0.2,-0.73 -1.42,-0.78 -0.45,0.09 -1.02,-0.29 -0.54,-1.4 0,0 1.32,-1.07 0.64,-1.09 2.17,-0.76 2.38,-3.29 0.09,-0.69 0.82,-0.6 1,1.22 1.67,0.3 1.08,-0.12 2.55,2.02 1.9,2.12 1.78,1.05 1.91,0.48 2.5,-0.65 3.14,0.29 1.17,-0.11 1.86,-1.06 1.16,0.05 1.81,-1.11 2.18,-2.29 0.12,-0.45 1.55,-1.24 2,-0.24 2.24,0.85 2.56,-1.29 1.47,-0.19 1.92,0.81 2.9,0.27 0.27,0.21 0,0 -2.78,4.96 -4.55,5.13 -3.58,3.58 -3.04,4.58 -3.33,2.88 -1,2.03 -1.32,1.79 0,0 -0.6,-1.31 -3.59,-2.23 -0.46,-0.03 -1.66,-0.79 -1.76,-1.45 -1.3,-2.45 -5.42,-3.07 -3.68,-0.95 z","AP":"m 345.24257,99.961144 -0.94,-0.06 -0.77,0.339996 -1.3,0.12 -2.79,-0.679996 -1.45,-1.03 -0.43,-1.5 -1.87,-1.39 -0.11,-1.3 0.21,-0.69 -0.31,-1.58 -0.33,-0.47 -0.95,-0.19 -0.41,-0.94 0.08,-2.43 -2.93,-3.28 -0.78,0.36 -0.82,-0.19 -1.5,-3.48 0.13,-1.58 -0.59,-1.81 -0.62,-0.56 -0.67,-1.51 -0.19,-2.11 0.43,-3.14 -0.17,-0.33 -2.57,-0.73 -2.02,-2.26 -0.76,-2.83 0.19,-0.72 0.68,-0.23 -0.49,-1.18 -0.68,0.03 -2.84,-2.66 -0.94,0.14 -0.38,0.42 -1.33,0.14 -0.84,-0.27 -0.8,-0.98 -1.14,-0.84 -1.19,-0.12 -0.49,-1.28 -0.67,-0.8 -1.93,-1.05 -1.29,-0.49 -3.39,-0.37 -1.08,0.29 -1.17,-0.02 -0.31,-0.54 -0.24,-1.44 0.25,-4.54 0.62,-1.3 -0.37,-2.3 -0.62,-0.57 0,0 0.35,-0.21 0.99,0.3 -0.01,0.81 -0.29,0.18 0.34,0.97 1.47,-0.06 0.82,0.23 0.35,0.9 0.84,0.71 2.25,0.78 3.29,0.75 2.76,-1.78 0.35,-0.76 1.73,-1.17 0.83,-0.29 0.69,0.94 2.71,0.94 1.08,-0.12 1.72,-1.01 0.12,-0.42 0.32,0.03 1.46,1.3 -0.2,0.87 2.37,-0.17 0.51,0.5 0.95,0.17 0.62,-0.01 0.91,-0.48 1.67,-1.5 1.78,-1.1 1.75,-2.3 0.37,-1 -0.2,-0.54 3.13,-6.5 0.11,-1.82 1.11,-1.3 0.73,-0.19 3.6,-5.79 0.23,-1.15 0.84,-1.2 1.79,-1.55 0.63,-1.66 2.11,-1.14 0.47,-0.92 1.04,-0.58 0.56,1.46 0.88,1.36 -1.67,-4.8 -0.07,-1.29 0.18,-0.33 3.37,2.42 1.14,1.21 0.91,1.22 0.52,1.19 0.03,1.58 0.44,0.31 0.32,-0.48 0.38,-0.1 0.21,0.4 0.21,7.89 0.66,3.87 2.71,6.05 2.66,8.94 3.32,5 1.01,0.35 3.27,-0.08 2.78,0.94 1.29,0.85 0.77,2.65 -0.16,3.33 -1.29,0.96 -1.73,0.43 -0.38,0.33 1.79,-0.15 1.04,-0.42 0.28,0.23 0.12,0.59 -0.17,0.73 -5.03,4.06 -1.17,2.1 -2.15,1.41 -1.94,3.72 -2.91,3.5 -0.7,0.46 -0.94,-0.09 -1.45,0.52 -2.08,2.98 0,0 -1.34,0.07 -0.75,0.9 0,0 -1.47,1.68 -0.97,2.22 -1.12,1.87 -0.84,0.65 -3.01,3.45 -0.36,2.4 0.17,1.8 -1.95,1.81 -0.98,0.12 z m 23.36,-46.99 -0.45,-0.33 -1.1,-1.86 0.07,-0.88 0.23,-0.41 1.66,-0.45 0.43,0.39 0.83,2.27 -0.99,1.1 -0.68,0.17 z m 2.49,17.61 -0.4,-0.25 -0.08,-0.71 1.11,-1.1 0.88,-0.15 1.25,0.24 0.46,-0.11 0.44,-0.64 0.05,0.59 -0.97,1.44 -0.99,0.5 -1.75,0.19 z m 3.44,-2.87 -0.78,-0.23 0,-0.56 0.72,-1.04 1.25,-0.1 0.18,0.35 -0.1,0.51 -1.27,1.07 z m -7.19,-18.42 -0.76,-0.5 0.26,-0.83 0.88,-0.17 0.86,0.32 0.01,0.73 -1.25,0.45 z","AM":"m 166.08257,47.551144 0.72,0.78 0.75,0.34 0.61,0.01 1.13,-0.42 0.63,0.11 0.06,0.96 1.21,1.17 0.97,0.37 0.88,-0.21 1.36,0.11 1.95,0.95 0.49,0.66 -0.91,3.32 -0.71,1.5 2.73,3.74 1.66,4.76 0.19,2.26 0.87,1.12 0.05,0.45 -1.62,1.46 0.36,1.59 0.66,1.58 -0.77,3.04 -0.57,0.96 0.29,4.98 0.88,2.17 1.22,0.84 0.58,0.9 1.13,4.33 -0.06,0.58 -1.14,1.32 -1.84,-0.33 -0.14,1.14 5.01,4.42 0.52,0.04 1.96,1.31 1.48,1.649996 1.04,2.04 0.53,0.07 1.34,-0.42 2.36,1.04 -0.44,-2.11 0.75,-2.289996 0.25,-1.73 -0.37,-1.8 0.82,-2.97 1.02,-1.26 1.28,-0.69 2.09,-0.71 0.55,-0.89 1.6,-0.06 2.83,0.93 1.87,2.04 0.92,2.51 1.82,0.23 1.25,-0.46 1.41,-1.41 2.03,-0.55 0.42,-0.39 0.02,-0.53 -1.14,-1.41 -0.23,-0.73 0.11,-0.66 1.15,-2.64 0.07,-1.13 1.66,-3.03 2.33,-3.26 -0.03,-0.68 18.49,0.07 0,0 0.4,4.86 -0.43,1.45 0.18,2.27 0.24,0.68 1.7,0.85 0.18,0.41 -0.35,0.69 -0.05,2.11 1.83,1.99 0.36,0.19 0.7,-0.18 1.84,1.23 0.55,1.83 0.04,0.93 0.3,0.45 4.64,3.769996 4.58,2.54 0.63,0.9 1.35,1.09 1.88,0.67 2.37,1.31 2.26,0.65 1.36,0.15 1.32,0.82 0.08,0.61 1.27,1.34 2.7,1.44 1.1,2.17 1.87,0.79 0.85,-0.61 1.38,-0.35 0.19,0.48 -0.13,0.78 1.81,1.67 -29.9,64.24 -0.78,1.31 -1.45,1.13 -0.58,0.97 -0.03,1.13 0.82,2.33 0.38,0.57 1.07,0.58 1.58,1.56 0.64,1.26 0.15,1.96 0.57,0.57 0,0 -1.18,1.2 -0.2,0.61 -0.06,0.76 0.34,0.84 -0.27,1.01 -1.2,1.82 -0.86,0.64 -0.42,0.85 0.1,0.85 0.66,1.37 0.46,1.94 -1.38,4.22 -1.18,5.22 -1.21,0.73 -47.85,0.32 0,0 0.04,-0.7 -0.36,-0.38 -1.39,-0.28 -1.92,1.08 -0.54,1.74 -0.68,0.19 -3.24,-1.48 -0.68,-2.88 -0.62,-0.2 -0.98,0.13 -0.46,-0.21 -1.25,-3.27 -2.54,-0.98 -1.33,-1.27 -0.8,-1.91 -0.45,-0.49 -2.15,-1.13 -10.79,0.06 -1.38,2.56 -1.72,0.5 0.09,1.17 -0.26,0.22 -2.48,0.53 -1.19,1.59 -0.05,0.67 0.9,0.7 0.17,0.45 -0.36,1.02 -0.81,1.15 -2.06,1.21 -0.11,1.81 0.24,1.46 -3.87,-0.46 -2.13,0.38 -1.2,1.07 -1.79,-0.1 -0.84,-0.55 -0.46,-0.02 -1.75,1.26 -0.53,0.84 0.26,1.75 -2.54,3.16 -0.68,0.08 -0.68,-0.53 -0.64,-2.26 -0.38,-0.09 -1.84,1.02 -1.3,1.21 -1.37,0.39 -0.77,-0.13 -1.08,0.5 -0.41,0.53 -0.13,0.72 -1.22,0.79 -0.37,0.02 -2.31,-2.33 -0.72,-0.37 -2.87,0.33 -3.96,-0.26 0.16,1.29 -0.15,0.56 -1.55,1.81 -1.92,0.58 -3.26,2.56 0,0 -28.509996,-12.13 -26.44,-14.17 -12.14,-3.14 -23.66,-5.66 -17.95,-7.48 0,0 -0.07,-0.65 0.7,-2.92 1.22,-1.4 4.92,-3.47 2.26,-0.24 0.47,-0.3 0.98,-1.56 0.08,-1.03 -1.74,-4.49 0.38,-1.19 1.18,-2.19 1.28,-1.32 0.92,-1.25 0.42,-0.98 0.3,-1.74 -0.29,-1.32 0.67,-2.04 0.31,-2.31 0.73,-0.75 3.66,-1.63 2.19,-1.23 1.15,-1.04 0.44,-1.4 0.78,-0.37 1.41,-0.11 1.65,-0.93 3.54,-2.73 2.42,-0.43 1.51,0.29 4.19,-1.22 1.5,-0.77 1.82,-0.36 3.33,0.38 1.3,-1.59 0.63,-1.45 1.09,-0.61 2.14,0.2 0.64,0.54 1.32,-0.24 1.1,-0.74 1.71,0.12 0.31,0.53 -0.02,1.18 1.61,1.29 2.83,0.08 0.58,-0.4 0.46,-0.78 -0.11,-0.39 1.17,-4.92 6.7,-37.17 1.16,-2.92 -0.99,-4.959996 0.12,-0.26 -1.3,-1.05 -1.48,-2.75 -0.04,-0.49 0.65,-1.39 -0.52,-1.78 -0.37,-0.4 -1.7,-0.59 -3.03,-2.35 -1.94,-2.28 0.2,-11.51 3.89,-0.26 1.75,-1.17 3.5,-0.92 2.68,1.76 1.22,0.11 1.27,-0.43 -0.49,-1.69 0.3,-1.72 -1.37,-2.1 -0.57,-0.54 -1.15,-0.6 -1.51,0.53 -2.79,-0.61 -3.57,0.09 -0.06,-9.9 0.96,0.04 1.32,-0.58 2.28,-0.6 2.84,0.87 19.03,0.06 -0.46,-0.66 -0.79,-0.14 -0.38,-1.2 0.95,-1.93 1.43,0.4 0.61,1.52 0.87,1.32 0.66,0.35 0.83,0.01 1.61,-0.61 1.94,-2.09 0.32,-0.84 1.259996,-1.24 2.55,-1.39 1.29,0.46 1.17,2.58 1.62,1.99 0.74,1.3 0.66,1.78 0.23,1.55 -0.49,3.63 0.2,1.76 3.2,-0.75 8.31,7.06 0.79,0.28 2.5,0.21 2.3,-1 1.7,-1.7 2.11,-1.16 2.19,-0.11 0.56,0.29 0.77,1.08 -0.02,0.97 -1.11,1.7 0.37,0.98 0.58,0.27 1.33,-0.72 0.56,-0.91 0.23,-1.29 1,-1.16 0.47,-0.23 1,0.18 0.55,-0.18 0.41,-0.66 0.46,-2.31 0.51,-0.37 1.51,-0.36 2.93,-1.77 0.97,0.55 0.93,-0.29 1.6,-1.04 1.02,-1.61 2.11,-1.21 2.03,0.55 2.36,-1.65 0.55,-0.82 0.44,-2.66 -0.03,-1.29 0.77,-0.92 1.03,-0.42 1.74,-0.02 1.34,-0.39 2.06,-1.6 0.96,-0.37 2.28,-0.3 z","BA":"m 527.76257,365.59114 -0.36,-0.83 0.68,-1.35 -0.01,-0.53 -0.53,-1.04 -4.13,-3.05 -0.15,-0.51 0.22,-1.51 -0.57,-1.23 -0.65,0.24 -0.2,0.45 -0.34,0.18 -0.22,-0.25 0.53,-4.4 0.82,-3.3 0.82,-0.88 2.47,0.24 1.02,-0.71 0,-0.42 -0.56,-1.02 0.16,-2.65 4.96,-4.22 1.47,-3.08 -0.42,-1.17 -0.78,-1.02 -0.89,-0.06 -0.73,-0.38 -2.83,-2.47 -2.12,0.02 -2.19,-0.6 -2.27,-1.08 -2.73,-0.56 -1.98,-0.14 -1.32,0.99 -1.47,0.5 -2.61,-0.45 -0.57,0.21 -0.44,-3.96 -6.52,-6.2 -0.38,-0.18 -4.39,1.23 -1.53,-1.24 -0.51,0.21 -0.93,-0.22 -2.54,-1.22 -2.17,-1.62 -0.98,0.18 -4.35,-3.63 -1.1,-0.54 -2.73,-0.75 -1.77,0.25 -1.88,0.9 -0.81,1.12 -0.64,0.18 -5.33,-1.47 -0.61,-0.49 -0.26,-1.5 0.14,-0.89 1.29,-2.74 -0.86,-0.46 -2.28,-0.52 -2.18,-0.04 -1.2,-0.5 -1.79,-0.08 -3.83,1.58 -4.26,3.03 -0.64,1.11 -3.37,1.87 -2.02,0.4 -0.95,1.18 -1.81,1.55 -1.43,0.52 -1,-0.15 -1.85,2.58 -1.04,0.77 -2.13,-0.38 -0.72,0.13 -0.69,1 -1.34,0.92 -0.4,-0.24 1.43,-3.43 -0.51,-2.41 0,0 1.48,-1.97 0.25,-0.77 -0.23,-1.27 -0.67,-1.72 0.1,-0.67 0.71,-1.42 -0.05,-0.46 -3.21,-2.62 -1.69,-3.46 -0.62,-3.52 0.05,-1.55 1.2,-3.83 1.59,-1.03 0.23,-0.38 0.06,-0.94 -1.63,-0.84 -0.11,-0.33 0.48,-2.52 1.43,-1.06 -0.02,-0.37 -2.72,-2.46 0,0 -0.04,-0.93 1.36,-2.38 -0.04,-1.07 -0.17,-0.42 -1.46,-0.49 -0.94,-0.65 -0.35,-1.26 0.06,-2.92 0.19,-0.85 1.95,-1.67 1.14,-0.42 0.96,-0.72 -0.29,-0.63 -0.58,-0.52 -0.92,-0.29 -1.03,0.18 -0.35,-0.33 -0.09,-0.5 0.42,-0.96 2.04,-0.82 0.56,-0.45 -0.04,-0.76 -1.88,-0.98 -3.58,-0.67 -1.86,-1.96 -0.23,-0.92 0.5,-1.16 1.01,-0.73 1.52,-3.48 0.9,-0.61 1.01,-0.27 0.35,-0.38 -1.29,-1.8 0.19,-0.37 3.21,-2.62 3.82,-2.02 0.56,-0.47 0.22,-0.98 0.69,-0.65 0,0 2.33,-0.02 1.44,1.34 0.66,1.04 0.53,2.21 1.76,2.49 4.18,1.86 1.8,-0.52 2.11,0.18 0.33,-0.21 0.75,-1.45 1.14,-0.37 0.67,-0.87 1.17,-0.89 2.21,-0.75 1.33,0.17 1.48,0.53 1.35,-0.42 2.97,-2.42 2.95,-5.05 0.72,-0.86 0.24,-0.92 0.3,-2.56 -0.12,-1.16 -2.24,-4.43 0.05,-0.93 3.24,-1.65 1.95,-0.02 1.5,0.46 0.41,0.93 0.32,0.18 2.12,-0.43 1.39,-0.54 1.33,0.38 1.71,0.99 -0.13,0.65 0.19,0.29 0.82,0.28 3,-0.11 1.47,-0.64 1.7,-0.1 0.82,-1.22 1.51,-1.34 2.73,-0.34 0.77,-0.36 0.81,-0.98 2.17,0.01 0.62,0.63 0.31,0.05 1.86,-1.81 -0.1,-2.4 1.99,-0.38 0.79,0.18 1.05,-0.66 1.5,-2.31 0.46,-1.15 0,0 0.89,0.4 1.16,-0.27 2.2,0.29 2.82,1.39 0.44,0.51 -0.06,2.73 0.72,1.94 2.21,0.91 0.27,2 -0.92,1.68 1.83,0.62 0.96,-0.22 0.82,-0.92 2.87,-0.88 0.77,-3.58 0.5,-0.87 0.75,-0.16 0.78,0.53 0.63,0.05 2.39,-1.02 1.1,-1.24 0.17,-0.59 -0.25,-1.36 0.29,-0.25 2.24,-0.45 0.77,-2.05 1.65,-0.44 2.53,-1.46 0.59,-0.1 1.49,0.56 0.83,1.44 1.36,0.81 2.36,0.78 2.99,0.4 1.58,1.15 0.54,1.65 0.39,0.27 0.43,-0.15 0.29,-1.75 0.43,-0.44 1,-0.01 0.45,0.32 0.02,0.63 -0.62,0.88 0.45,0.83 0.5,0.37 2.1,0.86 0.02,0.94 1.22,3.05 0,0 0.54,1.4 1.02,0.29 0.45,-0.09 1.43,0.79 0.2,0.72 0,0 -0.67,1.16 0.21,2.14 1.28,2.5 1.99,1.95 0.75,1.15 -0.08,3.12 -0.66,1.62 -0.09,0.88 0.76,2.75 -0.3,0.58 -0.69,0.55 -2.55,1 -1.13,-0.75 -1.71,-0.01 -0.32,0.3 -0.59,1.58 0.02,0.77 0.95,1.6 1.1,0.66 0.52,1.49 1.43,1.51 0.15,0.39 -0.13,1.42 -0.34,0.39 0.12,0.42 0.59,0.52 1.93,0.92 0.48,0.71 0.54,0.34 1.55,0.64 2.89,-0.88 0,0 0.64,-0.02 0.36,0.41 -4.08,8.83 -3.83,5.19 -1.03,2.33 -5.03,5.74 -2.45,1.26 -0.87,-0.01 0.3,-1.43 0.37,-0.15 0.14,-1.1 -0.45,-1.93 -1.87,-0.25 -0.43,-1.3 -0.68,-0.75 -0.37,0.6 -0.46,2.33 -0.5,0.87 -0.55,0.38 -0.56,-0.29 -0.49,-1.74 0.11,-0.32 0.31,-0.13 -0.03,-0.39 -0.87,1.29 0.93,1.69 0.46,0.23 0.37,-0.15 1.15,0.26 -0.46,1.81 -1.21,1.15 -0.25,1.82 -1.25,0.97 -0.35,0.67 -0.2,0.84 0.18,0.85 -1.35,-0.39 -0.21,0.39 -0.36,2.52 0.36,-0.72 0.75,0.21 0.24,0.54 -0.23,0.41 0.06,0.62 0.3,0.3 0.33,1 -1.04,2.51 0.57,3.44 -0.55,0.49 -0.57,-0.22 -0.14,1.13 0.59,0.46 1.21,-1.72 -0.47,-2.21 0.82,-0.61 0.25,0.54 -0.06,1.76 -0.96,2.61 -0.74,5.43 -0.51,1.81 0.2,2.47 0.78,2.85 0.19,4.54 0.87,6.41 0.99,3.42 -2.21,6.66 -1.35,6.65 -0.47,1.01 -0.16,2.86 -1.06,3.72 -0.09,2.33 0.39,4.42 0.89,1.71 -2.24,2.98 -1.81,0.67 -0.94,0.64 -2.72,3.89 -0.57,2.04 0,0 -8.09,-5.14 -0.31,-0.53 z m 22.28,-78 -0.23,-1.2 0.74,-0.41 1.06,-1.04 0.16,-0.64 -0.37,-0.73 0.76,0.14 0.82,1.05 -0.05,0.53 -2.89,2.3 z m -2.53,6.85 -0.63,-0.03 0.01,-0.67 0.26,-0.36 -0.8,-0.22 -0.42,-0.4 0.13,-1.07 1.87,-0.15 0.16,0.2 0.11,1.13 -0.69,1.57 z","CE":"m 574.05257,157.11114 -4.89,1.59 -2.61,2.01 -3.3,6.69 -0.84,1.12 -0.87,0.57 -0.65,1.67 0.15,0.74 -1.4,2.44 -1.46,1.51 -0.57,1.1 -1.03,0.26 -0.78,-0.51 -0.51,0.07 -0.84,0.88 -1.41,2.25 -0.34,1.97 0.64,0.17 0.66,-0.38 0,0 -0.08,0.54 -0.84,1.15 -1.03,3 0.52,1.31 -0.66,1.31 -1.09,0.63 -0.17,0.38 -0.12,0.93 0.24,0.41 0.58,0.29 0.35,0.72 -0.02,1.66 1.24,0.89 0.69,0.08 0.34,1.19 -1.61,3.49 -1.19,1.12 0.17,0.25 0,0 -1.59,0.49 -1.07,0.83 -1.54,2.29 -1.65,0.05 -0.63,-1.64 -0.78,-0.57 -1.36,-0.48 -1.01,-1.07 -0.46,-0.99 -1.83,-0.83 -2.85,-1.9 -3.08,-0.42 -1.29,0.1 -2.14,0.8 -1.63,0.19 -0.89,-0.24 -4.93,-0.2 0,0 0.06,-1.32 -0.68,-0.68 -0.08,-0.97 1.14,-3.11 1.5,-2.25 0.01,-0.69 -0.77,-1.16 -2.56,-0.47 -1.31,-0.65 -1.01,-2.67 -1.05,-5.2 -0.76,-2.57 0.24,-0.45 -0.94,-8.16 -0.11,-0.38 -0.92,-0.69 0.8,-0.58 0.59,-1.58 -0.6,-2.99 -1,-2.01 0.48,-1.6 -0.79,-3.87 0.74,-1.36 0.02,-0.76 -1.36,-1.59 -0.44,-1.73 -3.15,-6.42 -1.8,-4.72 -0.29,-1.29 0.18,-1.46 1.58,-1.97 1.09,-1.85 0.11,-0.8 0,0 0.19,-0.14 -0.04,-0.62 -0.4,-0.66 0.65,-0.81 6.74,-0.22 2.89,-0.43 2.07,-0.66 7.4,0.79 2.12,1.12 1.94,1.5 4.12,2.18 1.46,0.52 4.82,3 1.21,0.2 2.22,2.29 2.99,2.11 2.57,0.72 2.44,2.91 1.22,0.61 2.96,3.81 4.16,3.08 1.46,2 1.04,0.99 1.5,0.82 1.15,0.03 2.37,0.92 0.79,0.67 z","DF":"m 416.97257,334.13114 -14.69,-0.02 -0.52,-3.26 0.92,-1.83 0.38,-3.73 11.95,0.01 1.83,1.98 0.06,2.21 -0.59,1.19 -0.21,2.44 z","ES":"m 501.89257,411.63114 -0.29,-0.14 0.44,-2.34 0.57,-1.3 -0.59,-3.12 0.16,-0.42 1.72,-2.06 5.15,0.03 0.55,-0.32 0.97,-3.24 1.11,-1.27 0.88,-2.29 0.24,-1.72 0.26,-0.44 1.24,-0.86 1.71,-2.09 0.54,-2.97 -0.29,-2.43 -1.27,-2.81 -1.1,-1.27 -0.52,-0.09 -0.45,0.29 -0.76,-0.28 -0.49,-0.71 0.43,-0.55 1.48,-0.09 0.8,0.35 0.97,0.03 0.95,-0.24 0.32,-0.42 -0.17,-1.72 -1.31,-0.35 -0.21,-0.41 0.3,-1.54 0.03,-1.92 -0.52,-0.66 -1.33,-0.67 -0.3,-0.7 1.17,-1.93 2.17,-1.31 0.31,-0.02 1.05,0.74 1.13,0.11 0.02,-0.81 -1.67,-2.27 1.34,0.13 2.18,-0.29 0.84,-0.61 1.08,-0.32 1.58,-0.08 2.54,0.81 0.91,0.55 0,0 0,0 0,0 0.3,0.53 8.1,5.14 0,0 -0.93,3.35 -0.31,2.86 0.12,3.59 0.72,6.15 -0.31,2.47 -1.49,3.18 -2.75,1.39 -0.55,0.6 -1.67,3.33 -0.98,3.8 -0.77,1.47 -0.83,-0.68 -0.88,-0.13 -0.29,1.28 1.35,0.52 -1.94,4.24 -3.45,3.84 -0.24,-0.27 -1.86,0.66 -0.8,1.23 -0.06,1.39 -0.42,1.25 -1.59,2.02 -0.29,1.13 0,0 -1.62,-1.06 -2.99,0.37 -4.34,-1.01 -2.5,-1.13 -0.67,-4.71 z","GO":"m 416.97257,334.13114 -0.87,-1.01 0.21,-2.44 0.59,-1.19 -0.06,-2.21 -1.83,-1.98 -11.95,-0.01 -0.38,3.73 -0.92,1.83 0.52,3.26 14.69,0.02 0,0 0,0 0,0 -0.53,1.52 0.31,1.57 -0.68,1.59 -1.04,1.25 -0.41,1.47 0.85,1.21 0.85,0.34 1.42,1.03 1.65,4.56 0,0.6 -2.32,2.71 -3.24,3.01 -0.43,2.14 1.09,1.11 0.9,-0.47 1.58,0.57 0.47,0.61 0.18,1 -0.17,0.71 -0.73,0.9 -0.51,1.89 1.19,3.46 -3.09,2.06 -1.16,0.2 -0.86,0.9 -0.48,1.12 -4.89,2.74 -0.7,-0.77 -4.35,-1.86 -0.55,0.48 -0.58,0.09 -1.75,0.01 -1.48,-0.28 -3.86,0.16 -2.01,-0.89 -4.13,2.64 -2.91,2.92 -0.33,0 -1.31,-1.42 -1.52,-0.3 -3.19,1.64 -3.71,-0.62 -2.48,0.96 -2.23,0.54 -1.41,2.1 -1.21,2.46 0.06,1 -0.84,1.3 -0.82,0.28 -0.84,-0.16 -0.45,0.14 -0.94,0.74 -1.64,2.1 -0.57,1.9 0.56,0.61 -0.01,0.34 -0.36,0.23 -0.86,-0.46 0,0 -0.24,-0.45 -2.66,-2.24 -3.15,-0.61 -1.62,-1.55 -1.9,-0.43 -1.49,-0.04 -3.35,-1.34 -0.68,-0.85 -3.07,-1.56 -0.67,-0.61 -1.44,-0.71 -1.14,-0.17 -2.7,-1.68 -2.78,0.16 -3.8,-0.7 -0.13,-0.33 0.26,-0.84 0.57,-1.17 1.31,-1.76 -0.08,-0.42 -2.25,-0.9 -1.14,0.67 -0.66,-0.19 -0.28,-0.41 -0.23,-1.11 0.26,-2.58 -0.19,-1.77 0,0 -0.95,-2.2 -0.18,-3.43 -1.41,-2.19 -0.16,-0.71 0.4,-3.41 2.55,-3.85 0.38,-2.91 0.7,-0.77 2.02,-0.84 1.92,-1.77 1.25,-2.02 0.33,-1.95 0.5,-1.01 1.28,-1.04 0.82,-1.43 0.08,-1.54 1.75,-0.97 1.4,-2.62 2.65,-0.13 2.72,-0.86 0.32,-0.28 1.98,-4.19 0.71,-0.96 0.64,-4.1 0.38,-0.74 1.92,-1.94 1.65,-1.01 1.07,-0.26 1.23,0.68 1.21,-0.73 1.39,-1.43 0.84,-2.93 1.17,-2.87 -0.01,-0.8 -0.48,-1.14 0.58,-2.74 1.6,-3.09 -0.12,-5.18 1.21,-0.78 1.03,-2.63 2,-3.17 0.39,-1.07 -0.16,-2.72 0.35,-0.9 0.97,-0.86 0.27,-1.13 -0.08,-0.63 0,0 0.34,-0.45 0.2,-1.88 0.66,-1.23 1.81,-2.09 0.56,-0.3 -0.03,1.71 -1.22,1.88 -0.52,2.34 2.4,0.4 2.2,1.03 3.93,0.4 3.09,1.71 4.07,1.43 0.63,-0.23 1.63,-5.94 1.47,-2.39 1.18,-0.97 1.15,1.31 1.04,1.88 1.11,3.71 0.61,3.1 1.14,0.05 0.75,-0.75 0.3,-1 0.56,-0.54 2.76,0.34 4.53,-0.53 0.22,0.74 -0.56,1.56 3.13,1.47 3.35,0.68 0.69,-0.08 0.51,-3.3 0.55,0.03 1.51,2.62 0.46,0.24 1.78,-0.9 2.52,-2.08 4.53,-1 1.55,0 2.56,-1.1 1.74,-1.34 5.36,-1.42 0,0 2.72,2.46 0.02,0.38 -1.43,1.06 -0.48,2.52 0.1,0.33 1.63,0.84 -0.06,0.94 -0.23,0.38 -1.59,1.03 -1.19,3.83 -0.05,1.55 0.62,3.52 1.7,3.46 3.21,2.62 0.05,0.47 -0.72,1.42 -0.1,0.67 0.67,1.72 0.23,1.28 -0.25,0.77 -1.48,1.97 0,0 -1,1.01 -3.23,-0.34 -0.9,-1.76 -2.42,-1.48 -1.17,1.49 0.58,3.77 -0.57,0.54 -0.4,0.13 -2.78,-1.14 -1.17,0.23 -0.37,0.28 -0.72,3.18 0.72,0.1 0.49,1.16 -0.57,0.94 -0.73,0.7 0.04,1.9 0.42,0.61 0.53,0.19 0.69,4.26 -0.53,0.53 -3.36,0.9 -2.29,1.51 z","MA":"m 458.83257,129.18114 -0.04,0.33 -2.04,2.15 -0.43,0.17 -0.04,1.44 1.97,-1.7 0.68,-1.21 2.12,-1.58 0.89,-1.14 1.03,-6.33 1.15,-0.7 1.11,-0.12 1.67,-0.92 0.65,-0.13 0.46,0.12 0.08,1.63 -0.2,0.45 -1.42,1.87 -3.21,1.75 -0.03,0.72 0.73,0.12 0.45,-0.81 1.15,-0.31 0.22,0.83 -0.59,0.51 0.25,0.3 4.21,-4.97 0.86,0.33 2.58,-0.93 4.04,0.43 -0.46,-2.41 0.61,-0.23 2.42,0.08 1.78,0.38 2.63,1.05 1.04,0.11 2.15,1.38 1.4,0.03 1.26,1.3 1.89,1.32 2.5,0.58 1.16,-0.19 0.56,0.76 0.34,0.05 1.59,-0.09 2.46,0.66 0.26,-0.9 -0.67,-0.47 1.67,-0.38 0.57,0.11 -0.09,0.42 0,0 -0.46,1.43 0.23,0.72 0.63,0.54 -0.38,1.53 -1.79,2.27 -4.13,3.97 -3.32,0.46 -0.8,-0.16 -2.92,3.4 0.04,1.8 -0.88,1.83 -1.89,1.85 -0.82,1.98 -0.64,0.17 -0.77,1.05 0.36,1.92 1.23,0.83 0.38,1.28 -0.28,1.46 -1.14,2.87 1.58,2.81 0.55,2.98 -0.11,2.43 -0.21,0.55 -4.1,4.42 -0.17,2.48 0.12,2.11 0.51,2.3 1.78,2.04 1.61,0.91 0.17,0.5 0.13,0.84 -0.39,2.2 -0.29,0.44 -0.12,1.21 -0.5,1.46 -1.21,1.31 -2.29,0.29 -0.65,-0.28 -0.83,0.04 -2.43,0.86 -1.52,0.11 -2.5,-1.82 -1.01,-0.21 -1.46,0.19 -1.01,0.6 -1.12,0.26 -0.23,-0.3 -0.84,0.24 -0.5,0.22 -1.9,1.91 0.01,0.46 -0.63,0.87 -2.01,2 -2.34,0.91 -2.87,2.56 -1.33,0.53 -1.05,0.04 -1.7,1.53 -1.08,0.36 -2.61,0.32 -2.72,0.76 -2.13,1.95 -0.98,2.97 -0.39,2.97 -0.63,2.32 -1.45,2.74 -0.3,0.22 -0.34,0.82 -0.13,1.52 -1.2,2.48 -1.7,1.4 -0.73,2 0.71,1.94 0.47,3.18 1.73,3.06 -0.04,0.52 -0.76,1.4 -0.13,6.36 -1.15,2.45 -0.26,1.06 -0.05,1.92 0,0 -1.28,-0.66 -0.61,-0.82 -0.82,-0.45 -0.99,-0.29 -1.78,0.2 -0.71,-0.18 -1.35,-2 -0.99,-2.86 -2.13,-1.62 -0.14,-1.65 1.64,-1.81 -0.08,-0.53 -3.88,-1.95 -0.62,-1.05 -0.06,-1.66 -0.75,-1.59 -0.94,-0.69 -2.08,-0.28 -0.2,-0.42 0.26,-0.71 2.63,-2.54 -0.37,-1.31 0.73,-2.68 0.69,-1.43 0.57,-0.55 1.34,-0.54 3.39,-0.35 -0.39,-1.35 0.64,-3.25 -0.08,-1.76 -1.8,-1.21 -4.27,0.94 -2.15,1.34 -2.27,-3.02 -0.91,-0.85 -3,-4.15 -0.88,0.07 -0.84,-1.44 0.61,-1.19 -0.11,-0.88 -0.25,-0.34 -1.37,-0.24 -0.42,0.27 -1.93,-1.33 0.18,-0.71 1.76,-0.66 1.75,-2.04 0.25,-1.59 -0.28,-1 0.31,-2.36 1.77,-6.16 0.01,-0.43 -0.68,-1.14 -0.23,-1.08 0.21,-3.72 -0.64,-1.5 -0.47,-3.49 -0.84,-1.03 -3.4,-1.44 -1.22,-0.02 -0.28,-0.32 -0.08,-1.03 -0.59,-0.69 -1.74,-0.29 -0.96,0.52 -1.4,-0.09 -2.78,-1.51 -0.86,-0.06 -1.96,0.53 -2.62,1.85 -0.53,0.64 0,0 -0.49,-0.08 14.71,-11.83 2.35,0.23 1.17,-0.92 1.55,-2.17 0.43,-1.15 1.55,-1.17 0.62,-2.88 1.12,-0.46 2.44,-2.32 0.47,-1.21 0.29,-1.9 1.6,-4.69 1.96,-1.54 1.48,-1.76 0.83,-1.45 0.46,-1.28 -0.18,-1.82 0.79,-0.81 -1.04,-1.58 3.68,-3.09 -0.13,-1.64 0.5,-2.38 1.74,-1.57 0.36,-0.71 0.9,-3.02 0.08,-1.61 -0.43,-0.53 -0.99,0.16 -0.27,-0.49 0.05,-0.62 1.14,-0.15 0.57,-0.74 0.71,-4.39 -0.16,-1.38 0.47,-1.03 0.77,-0.45 0,0 0.63,0 0.24,-0.24 -0.06,-0.54 0.34,-0.749996 0.58,-0.53 1.34,0.98 0.45,1.839996 1.19,0.12 0.77,-1.36 0.61,2.93 0.99,0.04 0.29,-0.49 0.07,-0.94 0.85,-0.04 1.69,0.53 0.5,0.69 -1.43,1.7 0.67,0.7 0.02,0.55 1.21,-2.04 0.49,-1.54 0.45,0 0.4,1.02 0,0.58 -0.87,0.92 -0.27,0.99 0.08,2.71 0.26,0.33 0.47,0.12 0.58,-0.14 0.96,-0.93 -0.47,-1 0.14,-0.6 1.32,-1.43 1.05,-0.25 2.13,0.59 1.5,-1.11 0.05,0.92 -0.36,0.21 -1.13,1.53 0.59,0.58 0.1,-0.37 1.25,-0.6 0.58,0.79 -0.14,1.21 1.63,1.75 0.86,-0.44 1.58,0.67 0.77,2.4 -0.11,0.95 -2.19,2.73 -0.38,0.89 0.1,0.66 0.6,-1.03 1.75,-1.68 0.83,-0.03 0.87,0.81 0.52,1.89 -0.27,1.23 -0.97,0.19 -1.03,0.91 -1.16,1.49 0.07,0.77 -1.16,2.35 -0.62,3.52 0.21,0.34 0.87,0.23 z m 0.52,0.45 -0.06,-0.79 0.53,-1.53 -0.41,-1.07 0.13,-0.66 0.91,-1.24 0.55,-0.19 0.05,2.35 -0.22,1.34 -0.8,0.6 -0.68,1.19 z m -6.3,-25.76 -0.44,-0.46 -0.08,-0.6 0.8,-1.12 0.84,-0.03 0.68,0.42 0.1,0.34 -0.19,0.36 -1.71,1.09 z m 3.5,4.18 -0.29,-0.3 0.06,-0.53 1.06,-0.89 0.48,0.07 0.5,0.85 -0.14,0.61 -0.4,-0.17 -1.27,0.36 z m -14.16,-4.81 -0.21,-0.05 0.95,-3.579996 0.3,0.09 0.03,0.23 -0.41,3.059996 -0.66,0.25 z","MT":"m 207.22257,296.31114 1.47,-1.43 4.11,-2.57 0.52,-2.45 1.43,-3.78 0.93,-1.08 1.64,-0.53 0.43,-0.41 0.58,-0.84 0.52,-2.25 1.66,-2.01 0.56,-2.24 0.07,-1.71 -0.58,-1.49 0.04,-2.05 -1.53,-3.34 -0.9,0.03 -0.58,-0.51 -0.43,-3.25 0.14,-1.32 1.36,-1.08 1.4,-1.75 0.17,-0.75 -1.41,-3.59 -1.07,-0.43 -1.11,-0.11 -3.5,0.09 -1.22,-1.11 0.24,-0.56 -17.16,-0.05 0.9,-9 -1.5,-2.75 -0.27,-1.76 0.03,-0.8 1,-3.52 -0.38,-1.93 0.94,-1.67 -0.83,-2.27 -0.15,-1.39 -0.26,-0.61 -0.78,-0.47 -0.06,-0.35 1.29,-4.99 0.76,-1.42 -0.6,-1.24 -1.4,-0.97 0,0 47.85,-0.32 1.21,-0.73 1.18,-5.22 1.38,-4.22 -0.46,-1.94 -0.66,-1.37 -0.1,-0.85 0.42,-0.85 0.86,-0.64 1.2,-1.82 0.27,-1.01 -0.34,-0.84 0.06,-0.76 0.2,-0.61 1.18,-1.2 0,0 1.17,1.08 2.45,4.06 0.4,1.76 1.37,3.96 1.32,1.93 0.77,1.62 -0.23,2.44 0.48,2.4 0.73,2.2 1.53,1.11 3,2.75 3.38,1.7 0.23,0.94 -0.04,1.1 0.23,0.49 0.95,0.4 0.82,-0.17 1.63,0.45 0.54,0.72 0.2,1.08 0.35,0.32 1.37,-0.45 3.69,1.49 34.04,2.42 62.97,3.48 0,0 -0.65,1.02 -0.56,1.89 -1.1,1.25 -0.44,3.14 -0.43,0.85 -0.37,0.27 -1.94,5.29 -0.54,2.97 -0.04,2.95 -1.88,5.99 0.06,0.86 1.39,1.34 -0.16,0.87 -0.82,0.89 -0.05,0.5 1.1,2.25 -0.47,3.31 0.01,1.57 0.52,0.58 0.44,3.05 -0.74,2.76 0.98,3.34 0.96,0.51 0.8,0.02 0,0 0.08,0.63 -0.27,1.13 -0.97,0.86 -0.35,0.9 0.16,2.72 -0.39,1.07 -2,3.17 -1.03,2.63 -1.21,0.78 0.12,5.18 -1.6,3.09 -0.58,2.74 0.48,1.14 0.01,0.8 -1.17,2.87 -0.84,2.93 -1.39,1.43 -1.21,0.73 -1.23,-0.68 -1.07,0.26 -1.65,1.01 -1.92,1.94 -0.38,0.74 -0.64,4.1 -0.71,0.96 -1.98,4.19 -0.32,0.28 -2.72,0.86 -2.65,0.13 -1.4,2.62 -1.75,0.97 -0.08,1.54 -0.82,1.43 -1.28,1.04 -0.5,1.01 -0.33,1.95 -1.25,2.02 -1.92,1.77 -2.02,0.84 -0.7,0.77 -0.38,2.91 -2.55,3.85 -0.4,3.41 0.16,0.71 1.41,2.19 0.18,3.43 0.95,2.2 0,0 -1.55,0.31 -1.17,-0.57 -0.87,-0.08 -2.66,0.08 -0.57,0.57 -4.62,-0.27 -1.74,-1.27 -1.3,-0.11 -0.15,-0.53 0.19,-0.46 1.66,-2.83 1.8,-0.7 1.23,-6.61 -1.34,0.13 -5.62,6.01 -1.01,-0.06 -2.13,0.88 -0.99,-0.04 -0.24,-0.25 -0.3,-1.37 -1.59,-1.04 -2.44,-0.07 -1.43,0.61 -0.49,0.85 -1.26,0.8 -4.52,0.63 -1.24,-0.57 -1.26,-1.11 -3.03,-1.16 -0.78,-1.02 -0.27,-0.86 -0.65,-0.35 -2.62,-0.47 -2.79,-1.25 -0.76,-1.15 -1.27,-0.2 -2.02,0.49 -1.35,1.25 -1.66,0.51 -0.77,-0.34 -1.56,0.22 -2.59,-0.03 -1.4,1.45 -0.09,1.17 -2.02,2.95 -2.05,2 -5.62,1.97 -2.15,-1.52 -1.02,-1.1 -0.7,-0.2 0,0 -0.66,-0.67 -0.32,-0.8 0.54,-0.71 -2.44,-2.15 -1.28,0.63 -0.52,-0.05 -1.17,-0.68 -0.45,-0.7 -2.02,-1.41 -1.89,-0.76 -0.3,-0.32 -0.3,-1.12 -0.23,-2.93 -0.61,-1.77 -0.19,-3.66 0.88,-1.64 1.14,-1.09 0.34,-1.78 -0.05,-1.89 -0.96,0.06 -0.4,0.6 -0.38,0.16 -26.86,-1.08 -1.05,-12.65 -5.37,-6.13 4.88,-0.06 -0.35,-7.55 -2.64,-5.32 -0.49,-1.97 0.26,-1.06 0.61,-0.55 0.65,-1.28 -1.44,-2.93 -3.11,-1.04 z","MS":"m 359.21257,400.07114 -0.4,2.46 -0.28,0.4 -1.5,0.78 -1.32,0.04 -0.47,0.22 -1.22,1.03 -1.99,2.68 -0.73,0.65 -1.01,0.3 -0.62,1.68 -0.16,2.93 -2.59,3.64 -0.96,0.52 -0.23,0.38 0.31,1.93 -0.08,0.95 -1.21,2.34 -2,2.26 0.35,0.85 -0.28,1.21 -1.44,1.03 -0.4,1.21 -1.73,1.69 -1.26,2.44 -1.95,1.87 -7.56,4.53 -1.26,1.14 -0.74,1.54 -0.84,1.08 0,0 -5.41,2.27 -1.11,0.82 -0.93,2.33 0.02,1.15 -1.45,3.56 -0.67,0.68 -1.66,1.01 -1.11,0.32 -0.33,0.35 -1.57,7.92 -0.36,0.82 -2.38,1.56 0,0 -2.55,-2.33 -3.41,-1.89 -3.99,1.97 -0.68,0.75 -1.66,0.49 -2.58,0.43 -2.36,-0.46 -1.01,-0.65 -0.47,-4.27 -0.32,-0.7 -0.9,-0.95 -0.23,-2.47 0.51,-1.34 -0.64,-0.79 -0.09,-0.44 0,-2.87 -0.89,-1.97 -0.6,-2.74 -0.05,-0.72 0.59,-1.36 0.02,-1.61 -1.57,-1.09 -0.38,-0.8 -0.16,-2.16 -1.65,-1.82 -2.17,-0.26 -1.51,0.31 -1.83,-0.29 -2.46,-1.96 -0.56,-1.49 -1.54,0.33 -2.17,2.74 -1,-0.6 -1.72,0.81 -1.08,0.16 -1.74,-0.69 -2.56,-0.49 -3.46,0.23 -3.66,-0.71 -0.48,-0.91 -1.99,-0.13 -0.89,0.52 -2.5,-0.88 0.91,-7.27 -0.43,-2.38 0.6,-1.42 0.98,-1.46 0.6,-6.03 -0.66,-2.33 -0.05,-1.73 -0.76,-0.96 -0.43,-0.09 -0.49,0.65 -0.64,-3.26 -0.79,-1.87 -1.21,-2.02 -0.35,-1.83 4.03,-2.3 0.76,-0.88 -4.2,-3.86 5.38,-11.42 1.12,-0.06 -0.28,-2.13 -0.74,-0.13 3.23,-10.33 0.66,-1.16 -3.09,-5.85 0.03,-1.91 0,0 0.7,0.2 1.02,1.1 2.15,1.52 5.62,-1.97 2.05,-2 2.02,-2.95 0.09,-1.17 1.4,-1.45 2.59,0.03 1.56,-0.22 0.77,0.34 1.66,-0.51 1.35,-1.25 2.02,-0.49 1.27,0.2 0.76,1.15 2.79,1.25 2.62,0.47 0.65,0.35 0.27,0.86 0.78,1.02 3.03,1.16 1.26,1.11 1.24,0.57 4.52,-0.63 1.26,-0.8 0.49,-0.85 1.43,-0.61 2.44,0.07 1.59,1.04 0.3,1.37 0.24,0.25 0.99,0.04 2.13,-0.88 1.01,0.06 5.62,-6.01 1.34,-0.13 -1.23,6.61 -1.8,0.7 -1.66,2.83 -0.19,0.46 0.15,0.53 1.3,0.11 1.74,1.27 4.62,0.27 0.57,-0.57 2.66,-0.08 0.87,0.08 1.17,0.57 1.55,-0.31 0,0 0.19,1.77 -0.26,2.58 0.23,1.11 0.28,0.41 0.66,0.19 1.14,-0.67 2.25,0.9 0.08,0.42 -1.31,1.76 -0.57,1.17 -0.26,0.84 0.13,0.33 3.8,0.7 2.78,-0.16 2.7,1.68 1.14,0.17 1.44,0.71 0.67,0.61 3.07,1.56 0.68,0.85 3.35,1.34 1.49,0.04 1.9,0.43 1.62,1.55 3.15,0.61 2.66,2.24 0.24,0.45 0,0 -0.58,0.25 -0.99,4.18 0.59,3.21 z","MG":"m 527.76257,365.59114 -0.91,-0.55 -2.54,-0.81 -1.58,0.08 -1.08,0.32 -0.84,0.61 -2.18,0.29 -1.34,-0.13 1.67,2.27 -0.02,0.81 -1.13,-0.11 -1.05,-0.74 -0.31,0.02 -2.17,1.31 -1.17,1.93 0.3,0.7 1.33,0.67 0.52,0.66 -0.03,1.92 -0.3,1.54 0.21,0.41 1.31,0.35 0.17,1.72 -0.32,0.42 -0.95,0.24 -0.97,-0.03 -0.8,-0.35 -1.48,0.09 -0.43,0.55 0.49,0.71 0.76,0.28 0.45,-0.29 0.52,0.09 1.1,1.27 1.27,2.81 0.29,2.43 -0.54,2.97 -1.71,2.09 -1.24,0.86 -0.26,0.44 -0.24,1.72 -0.88,2.29 -1.11,1.27 -0.97,3.24 -0.55,0.32 -5.15,-0.03 -1.72,2.06 -0.16,0.42 0.59,3.12 -0.57,1.3 -0.44,2.34 0.29,0.14 0,0 -2.53,2.35 -1.24,0.27 -0.56,0.5 0.74,0.7 -2.36,6.05 -1.9,3.71 -0.09,0.75 1.44,0.13 0.29,0.61 -0.21,0.52 -2.53,0.98 -9.51,4.53 -1.37,0.2 0.02,-0.46 -0.49,-0.17 -2.53,-0.27 -0.57,0.06 -1.62,0.94 -1.25,0.16 -3.2,0.08 -0.36,-0.32 -0.51,0.08 -4.1,1.78 -1.05,0.77 -1.71,0.77 -0.5,-0.28 -2.59,0.17 -2.91,1.34 -2.42,0.74 -0.68,0.49 0,0 -1.25,0.73 -2.2,0.22 -1.93,1.02 -1.23,1.24 -1.79,0.67 -2.38,0.25 -2.34,-0.08 -0.01,-0.49 0.35,-0.49 -0.09,-0.35 -1.19,0.33 -0.18,2.3 0.24,0.23 -0.05,0.84 -0.75,0.98 -1.3,0.32 -0.57,-0.43 -3.61,1 -0.19,-0.53 -2.01,0.24 -1.12,-0.25 -2.03,-3.31 1.22,-0.71 -0.52,-1.71 -1.8,-0.83 -1.79,-1.23 -0.71,-1.61 0.53,-1.56 0.19,-3.45 -0.26,-2.94 1.86,-2.72 0.7,-2.18 0.05,-1.27 -0.23,-0.37 -3.7,-1.32 -1,0.05 -0.28,0.36 -0.78,0.31 -1.61,0.05 0.03,-0.85 -0.83,-1.99 -1.3,-1.79 -0.37,-2.21 -0.31,-0.62 -0.79,-0.74 0.19,-1.94 1.52,-2.03 0.06,-0.56 -0.4,-1.55 -1.88,-1.21 -0.58,-0.61 0.29,-2.37 0.57,-1.01 -0.2,-1.04 -3.27,-3.35 -1.3,0.29 -0.85,0.64 -1.65,-0.78 -2.38,0.11 -0.31,0.61 0.2,0.46 -0.44,0.99 -2.78,0.68 -1.11,-0.43 -1.51,-1.45 -1.01,1.25 -8.18,0.68 -0.46,0.48 -0.48,1.19 0.27,2.54 -0.41,0.44 -1.19,-0.52 -0.01,-2.78 -0.25,-0.96 -0.36,-0.39 -0.56,-0.05 -0.26,0.19 -0.41,1.13 -0.67,0.94 -0.54,0.32 -0.62,-0.02 -1.21,-2.1 -0.33,-1.42 0.14,-0.91 -1.68,-0.79 -2.18,-1.42 -1.99,0.59 -1.62,-0.22 -1.67,0.35 -4.29,-0.96 -2.55,-0.08 -1.73,-1.55 -0.75,-0.14 -1.5,0.61 -1.43,1.69 -1.92,0.37 -2.15,1.11 -1.22,1.13 0,0 0.31,-2.62 -0.59,-3.21 0.99,-4.18 0.58,-0.25 0,0 0.86,0.46 0.36,-0.23 0.01,-0.34 -0.56,-0.61 0.57,-1.9 1.64,-2.1 0.94,-0.74 0.45,-0.14 0.84,0.16 0.82,-0.28 0.84,-1.3 -0.06,-1 1.21,-2.46 1.41,-2.1 2.23,-0.54 2.48,-0.96 3.71,0.62 3.19,-1.64 1.52,0.3 1.31,1.42 0.33,0 2.91,-2.92 4.13,-2.64 2.01,0.89 3.86,-0.16 1.48,0.28 1.75,-0.01 0.58,-0.09 0.55,-0.48 4.35,1.86 0.7,0.77 4.89,-2.74 0.48,-1.12 0.86,-0.9 1.16,-0.2 3.09,-2.06 -1.19,-3.46 0.51,-1.89 0.73,-0.9 0.17,-0.71 -0.18,-1 -0.47,-0.61 -1.58,-0.57 -0.9,0.47 -1.09,-1.11 0.43,-2.14 3.24,-3.01 2.32,-2.71 0,-0.6 -1.65,-4.56 -1.42,-1.03 -0.85,-0.34 -0.85,-1.21 0.41,-1.47 1.04,-1.25 0.68,-1.59 -0.31,-1.57 0.53,-1.52 1.27,-0.12 2.29,-1.51 3.36,-0.9 0.53,-0.53 -0.69,-4.26 -0.53,-0.19 -0.42,-0.61 -0.04,-1.9 0.73,-0.7 0.57,-0.94 -0.49,-1.16 -0.72,-0.1 0.72,-3.18 0.37,-0.28 1.17,-0.23 2.78,1.14 0.4,-0.13 0.57,-0.54 -0.58,-3.77 1.17,-1.49 2.42,1.48 0.9,1.76 3.23,0.34 1,-1.01 0,0 0.51,2.41 -1.43,3.44 0.4,0.23 1.34,-0.91 0.7,-1 0.72,-0.13 2.13,0.38 1.04,-0.77 1.85,-2.57 0.99,0.15 1.43,-0.53 1.81,-1.55 0.95,-1.17 2.02,-0.41 3.37,-1.86 0.64,-1.11 4.27,-3.03 3.82,-1.58 1.8,0.09 1.2,0.5 2.18,0.03 2.28,0.53 0.85,0.46 -1.29,2.74 -0.15,0.89 0.26,1.49 0.61,0.5 5.33,1.46 0.64,-0.17 0.81,-1.12 1.88,-0.89 1.77,-0.26 2.73,0.75 1.1,0.54 4.35,3.64 0.98,-0.18 2.17,1.62 2.53,1.22 0.93,0.22 0.51,-0.21 1.53,1.24 4.39,-1.23 0.38,0.18 6.52,6.2 0.44,3.96 0.57,-0.21 2.61,0.45 1.47,-0.5 1.32,-0.99 1.99,0.15 2.73,0.56 2.26,1.08 2.19,0.61 2.12,-0.03 2.83,2.47 0.73,0.38 0.89,0.07 0.78,1.02 0.42,1.17 -1.47,3.08 -4.96,4.22 -0.15,2.65 0.56,1.02 0,0.42 -1.02,0.71 -2.48,-0.24 -0.82,0.88 -0.82,3.3 -0.53,4.4 0.22,0.25 0.35,-0.19 0.2,-0.45 0.64,-0.24 0.58,1.23 -0.22,1.51 0.15,0.51 4.14,3.06 0.53,1.04 0.01,0.53 -0.68,1.35 z","PA":"m 371.29257,235.50114 -62.97,-3.48 -34.04,-2.42 -3.69,-1.49 -1.37,0.45 -0.35,-0.31 -0.2,-1.09 -0.55,-0.72 -1.63,-0.45 -0.82,0.17 -0.95,-0.39 -0.23,-0.5 0.04,-1.1 -0.23,-0.94 -3.38,-1.7 -3,-2.76 -1.54,-1.11 -0.72,-2.2 -0.48,-2.39 0.23,-2.44 -0.77,-1.63 -1.33,-1.93 -1.37,-3.95 -0.39,-1.76 -2.45,-4.06 -1.18,-1.08 0,0 -0.57,-0.56 -0.15,-1.96 -0.64,-1.26 -1.59,-1.56 -1.07,-0.58 -0.37,-0.57 -0.83,-2.34 0.03,-1.13 0.58,-0.97 1.45,-1.13 0.78,-1.31 29.9,-64.24 -1.81,-1.67 0.13,-0.78 -0.19,-0.48 -1.39,0.35 -0.85,0.61 -1.87,-0.78 -1.1,-2.17 -2.69,-1.45 -1.27,-1.34 -0.08,-0.6 -1.32,-0.82 -1.37,-0.15 -2.25,-0.65 -2.38,-1.31 -1.88,-0.67 -1.35,-1.09 -0.63,-0.9 -4.58,-2.54 -4.64,-3.769996 -0.3,-0.44 -0.04,-0.93 -0.55,-1.83 -1.84,-1.23 -0.7,0.19 -0.36,-0.2 -1.83,-1.98 0.05,-2.11 0.35,-0.69 -0.18,-0.41 -1.69,-0.85 -0.24,-0.68 -0.18,-2.27 0.43,-1.45 -0.4,-4.86 0,0 -1.59,-16.97 0,0 0.75,0.32 0.43,0.58 -0.02,0.48 0.45,0.4 0.92,0.28 1.37,-0.71 0.47,-0.81 2.71,0.23 0.81,-1.05 -0.54,-1.81 1.79,-0.36 1.41,-1.63 2.64,1.01 1.88,0.03 0.54,-1.52 3.33,-1.62 1.97,0.39 1.16,-0.11 0.49,-0.25 1.2,-1.48 0.4,-1.4 1.46,-1.1 0.86,-0.11 0.65,0.46 2.11,-1.13 0.41,0.11 0.37,0.99 0.73,0.45 2.03,0.48 1.61,0.25 0.56,-0.6 1.67,-0.39 0.78,0.28 0.82,-0.01 0.86,-0.34 2.24,0.3 4.67,1.38 0.96,-0.14 1,-0.87 -0.03,-2.28 -2.07,-2.5 -1.24,-0.63 0.49,-1.68 1.31,-1.45 0.28,-1.11 0.31,-0.17 0.71,0.19 0.83,0.76 2.35,1.11 11.62,-2.33 1.57,1.69 1.02,0.06 0.44,-0.29 0,0 0.62,0.57 0.37,2.3 -0.62,1.3 -0.25,4.54 0.24,1.44 0.31,0.54 1.17,0.02 1.08,-0.29 3.39,0.37 1.29,0.49 1.93,1.05 0.67,0.8 0.49,1.28 1.19,0.12 1.14,0.84 0.8,0.98 0.84,0.27 1.33,-0.14 0.38,-0.42 0.94,-0.14 2.84,2.66 0.68,-0.03 0.49,1.18 -0.68,0.23 -0.19,0.72 0.76,2.83 2.02,2.26 2.57,0.73 0.17,0.33 -0.43,3.14 0.19,2.11 0.67,1.51 0.62,0.56 0.59,1.81 -0.13,1.58 1.5,3.48 0.82,0.19 0.78,-0.36 2.93,3.28 -0.08,2.43 0.41,0.94 0.95,0.19 0.33,0.47 0.31,1.58 -0.21,0.69 0.11,1.3 1.87,1.39 0.43,1.5 1.45,1.03 2.79,0.679996 1.3,-0.12 0.77,-0.339996 0.94,0.06 0,0 -0.53,0.739996 0.29,1.59 -0.17,0.53 -1.29,1.11 -1.39,0.17 -0.5,-0.18 -0.84,-0.79 -0.66,-0.15 -3.38,1.58 -0.37,0.54 -1.6,0.72 -0.63,-0.02 -1.55,0.59 0.04,0.58 6.46,-1.06 0.88,0.66 0.13,0.46 0,0.66 -0.62,0.5 0.3,0.36 0.63,-0.2 0.86,-1 1.02,-0.01 0.53,-0.27 0.6,0.12 1.07,-0.42 1.14,-0.57 3.28,-2.34 1.5,-0.35 1.84,-0.81 3.16,-1.84 0.54,-0.999996 0.67,-0.52 2.09,-1.01 0.66,-0.72 -0.25,-0.67 0.21,-0.41 1.13,-0.28 1.09,0.06 0.41,0.21 0.38,3.799996 -0.52,2.58 0.33,1.62 0.81,1.6 1.31,1.35 0.3,1.64 -0.12,0.47 -1.84,1.84 -0.47,0.13 -0.87,-0.52 -1.82,-0.52 -1.26,-0.31 -0.93,0.14 -2.13,-1.04 -0.26,-1.12 -0.88,-0.53 -2.28,3.82 -0.61,2.37 0.68,2.97 0.48,0.64 0.92,0.62 -1.01,-1.14 -0.43,-2.69 0.12,-0.52 2.57,-4.22 2.31,1.18 0.11,0.45 2.53,2.45 -0.25,2.02 -0.74,0.55 0.4,2.33 0.52,1.13 1.12,0.75 0.74,0.15 0.52,0.49 -0.34,-0.64 -0.77,-0.24 -1.2,-1.04 -0.22,-0.68 0.34,-4.2 0.82,-1.19 1.43,0.73 0.83,1.2 -0.09,0.79 1.2,0.86 0.25,-0.29 -1,-1.26 -0.92,-2.1 0,-0.44 2.26,-2.32 1.62,0.09 1.93,0.64 0.34,0.56 -0.61,0.59 0.32,0.28 0.48,0.03 1.03,-0.17 1.33,-0.9 4.09,-0.96 0.77,0.2 1.74,1.06 3.17,-0.42 1.07,-0.41 1.02,-1.01 0.98,-0.59 1.74,-0.51 0.77,0.07 0.06,0.75 -2.04,4.02 -0.24,1.5 -0.46,1.07 -0.83,1.03 -0.01,0.88 0.58,1.42 -0.32,2.47 0.88,-1.19 0.01,-1.4 1.54,-3 1.13,-3.19 1.12,-1.56 0.27,-0.27 0.76,-0.05 0.58,-0.35 1.82,-0.23 0.88,-1.35 1.51,-1.69 1.36,-2.26 0.52,-0.46 0.79,0.49 0.62,-0.46 1.62,2.34 1.19,0.59 -0.05,-0.74 -0.35,-0.75 0.62,-1.01 3.51,-0.51 -1.03,-0.32 -3.51,0.46 -0.31,-0.21 0.29,-2.43 0.51,-0.29 0.67,0.38 1.02,0.11 1.07,-3.099996 -0.68,-1.39 0.03,-0.68 1.17,-1.81 2.84,-2.48 0.36,-0.08 1.11,1.14 2.93,-2.09 0.46,-0.07 0.4,0.45 0.1,0.57 -0.32,0.67 1.07,-0.16 0.81,-0.58 0.36,-0.78 0.63,-0.19 0.28,0.15 0.74,1.39 1.33,1.2 0.2,-0.56 -0.11,-0.38 -0.96,-0.49 -0.14,-0.29 -0.13,-1.2 0.17,-0.42 0.44,-0.19 2.28,0.26 1.18,0.65 0.62,1.02 1.63,0.71 1.65,-0.78 0.53,2.14 -0.5,0.31 -0.03,0.59 0.92,-0.52 1.16,-2.35 0.38,0.23 -0.23,1.33 0.41,0.44 2.51,-0.26 0.45,0.65 0.46,1.68 -0.6,0.95 0.85,-0.5 0.26,0.37 1.89,0.14 3.53,-1.24 -0.31,1.58 -0.75,1.829996 1.47,-0.489996 0.59,-0.62 0.63,1.619996 0,0 -0.77,0.45 -0.47,1.03 0.16,1.38 -0.71,4.39 -0.57,0.74 -1.14,0.15 -0.05,0.62 0.27,0.49 0.99,-0.16 0.43,0.53 -0.08,1.61 -0.9,3.02 -0.36,0.71 -1.74,1.57 -0.5,2.38 0.13,1.64 -3.68,3.09 1.04,1.58 -0.79,0.81 0.18,1.82 -0.46,1.28 -0.83,1.45 -1.48,1.76 -1.96,1.54 -1.6,4.69 -0.29,1.9 -0.47,1.21 -2.44,2.32 -1.12,0.46 -0.62,2.88 -1.55,1.17 -0.43,1.15 -1.55,2.17 -1.17,0.92 -2.35,-0.23 -14.71,11.83 0.49,0.08 0,0 2.29,0.81 1.87,-0.24 1.29,0.12 1.02,1.66 0.39,0.31 0.87,0.14 1.26,1.17 -0.04,0.63 -0.37,0.67 -0.72,0.37 -0.97,0.07 -0.29,0.28 0.09,1.41 1.01,1.34 -0.92,2.75 -0.64,0.48 -1.46,0.46 -0.25,0.46 0.29,1.2 -0.19,1.34 -1.3,0.15 -1.51,1.34 -0.85,1.27 0.15,1.51 -0.24,0.5 -2.5,1.2 -3.41,1.14 -2.47,1.78 -0.19,0.35 0.43,2.19 0.06,2.67 -1.28,2.1 -1.41,1.68 -0.15,0.57 0.17,0.88 0.59,0.96 1.67,1.74 0.75,0.32 0.15,0.3 -0.66,4.04 -1.76,5.15 -1.08,0.81 -1.7,3.24 -0.18,0.99 -0.94,1.54 -0.74,0.85 -1.05,0.16 -1.37,0.92 -1.03,1.92 -1.21,1.68 -1.18,1.09 -1.15,1.58 -1.13,4.46 -1.6,3.66 z m 21.16,-130.31 -4.52,1.96 -3.39,0.52 -2.02,-0.31 -0.65,1.13 -1.84,1.19 -0.72,-0.61 -0.61,-1.53 -0.23,0.28 0.42,1.23 -0.34,0.81 -0.71,0.41 -3.77,-1.64 -0.8,0.72 -4.19,1.26 -3.2,-0.57 -0.81,-0.61 -0.24,-1.85 -0.23,-0.41 -1.11,-1.02 -1.06,-1.6 -0.21,-1.78 0.52,-2.75 0.62,-0.379996 1.76,0.359996 0.93,-0.749996 0.08,-0.56 -1.3,0.43 -1.22,-0.13 -0.94,-0.71 -0.18,-1.05 0.34,-5.08 0.73,-0.76 0.35,0.75 1.76,0.6 0.55,-0.06 -0.46,-0.42 -1.27,-0.22 -0.9,-2.16 0.36,-1.68 0.89,-1.97 1.33,-1.33 0.96,-0.57 1.34,-0.49 1.32,-0.13 3.46,0.52 7.21,1.77 3.7,-0.46 0.11,-0.3 1.14,-0.62 2.16,-0.37 2.89,0.29 2.8,0.82 6.48,0.85 0.63,0.47 -0.05,1.23 -0.7,0.74 -0.68,1.5 -0.36,2.65 -0.86,3.3 -1.29,0.68 -0.35,0.69 0.23,1.19 -1.98,2.579996 -1.39,3.5 -0.49,0.45 z m -47.21,-0.17 -0.75,-0.51 1.1,-2.25 -0.09,-1.79 0.25,-0.21 2.33,-0.479996 0.9,-0.86 0.15,-0.5 -0.2,-2.34 0.86,-2.58 1.26,-1.49 2.29,-1.47 2.87,-0.2 0.72,2.36 -1.1,2.19 -0.85,3.04 -1.1,0.67 -1.34,2.029996 -0.78,0.72 -4.94,3.31 -1.58,0.36 z m 28.48,-22.899996 -1.03,-0.25 -2.45,0.08 -0.79,-0.16 -0.29,-0.26 -0.38,-1.09 0.01,-1.24 1.51,-0.42 1.89,0.04 2.19,-1.29 4.81,-0.6 0.77,0.26 0.68,0.68 -0.18,1.02 -2.56,1.39 -1.78,2.48 -1.1,0.5 -1.3,-1.14 z m 4.79,0 1.86,-1.2 1.98,0.03 1.65,0.62 0.53,0.99 0.05,0.62 -0.88,0.77 -2.85,0.28 -1.17,0.32 -2.26,-0.89 -0.2,-0.53 1.29,-1.01 z m -16.98,4.39 -0.5,-0.26 -0.61,0.04 -1.54,-0.69 0.21,-1.16 0.64,-0.92 1.92,-0.4 2.36,-0.9 1.32,0.08 0.8,0.68 0.09,0.13 -1.93,1.61 -1.07,0.34 -1.69,1.45 z m 9.42,-9.69 -0.82,-0.3 -0.17,-1.66 0.15,-0.6 1.17,-1.31 2.45,-0.92 0.25,0.12 0.53,0.68 0.04,0.89 -1.95,1.99 -1.65,1.11 z m -13.83,20.22 -0.14,-0.41 0.19,-0.93 1.04,-2.81 2.59,-1.69 0.72,-0.28 0.69,0.14 -0.16,1.79 -1.56,0.44 -1.62,2.19 -1.75,1.56 z m 10.91,-17.57 -1.19,-0.31 -0.3,-0.48 0.88,-0.96 0.71,-3.95 0.89,-1.23 0.29,0.13 0.07,0.32 -0.02,2.48 0.6,1.87 -0.32,0.88 -1.03,0.4 -0.58,0.85 z m -14.81,10.19 -0.27,-0.19 0.12,-0.61 0.55,-0.36 1.19,-1.71 0.76,-1.54 0.73,-0.66 1.45,-0.54 -0.2,1.49 -0.4,1 -1.72,1.66 -2.21,1.46 z m 13.87,-7.03 -0.6,-0.15 -0.84,-0.71 -0.96,-1.64 -0.05,-0.38 0.23,-0.29 0.81,-0.58 1.85,0.84 0.29,0.43 0.24,2.09 -0.97,0.39 z m -5.38,30.559996 -0.65,-0.11 -0.88,-0.52 -0.69,0.46 -0.75,-0.28 -1.68,-1.74 0,-0.61 1.28,-0.01 3.06,1.32 0.31,1.49 z m -21.15,-5.54 0.04,-1.03 -0.2,-0.3 0.6,-0.99 2.36,-0.88 0.78,0.38 0.87,0.86 -0.29,0.35 -1.03,0.47 -2.54,0.41 -0.59,0.73 z m 12.7,-6.69 -0.18,-0.03 0.01,-0.35 0.54,-0.939996 1.79,-1.62 0.42,-1.24 0.05,-1.3 0.24,-0.3 0.32,0.44 0,1.51 -0.89,2.73 -0.62,0.649996 -1.68,0.45 z m 6.3,-9.899996 1.65,-2.96 0.88,-0.21 0.71,0.19 0.27,0.87 -0.58,0.71 -2.93,1.4 z m 31.42,18.969996 -0.84,-0.35 -0.34,-1.06 1.04,-1.72 1.07,-0.33 0.19,0.1 -0.02,0.74 -0.74,2.24 -0.36,0.38 z m -33.48,-19.469996 -0.54,-0.2 0.32,-2.04 1.33,-1.81 0.23,0.04 1.29,0.88 -0.01,0.25 -1.55,0.64 -1.07,2.24 z m 2.23,5.03 0.72,0.03 -0.4,0.45 -0.94,0.31 -0.11,1.12 -0.79,0.71 -1.69,0.84 -0.16,-0.18 0.27,-0.83 0.47,-0.63 1.73,-1.67 0.9,-0.15 z m -22.56,10.209996 -0.55,-0.19 -0.07,-0.35 0.43,-0.4 3.56,-1.6 0.54,0.7 -0.01,0.2 -1.4,0.73 -2.5,0.91 z m 63.53,-4.78 -1.03,-0.19 -0.82,-0.79 0.87,-1.249996 1.34,-0.01 0.19,1.19 -0.1,0.589996 -0.45,0.46 z m -37.25,-18.899996 -2.36,0.7 -0.59,0.01 -0.18,-0.21 1.03,-1.04 1.04,-0.51 1.04,0.17 0.44,0.34 0.15,0.23 -0.15,0.21 -0.42,0.1 z m -5.27,8.59 -0.08,-0.76 0.25,-0.5 2.48,-1.46 -0.9,2 -0.81,0.63 -0.94,0.09 z m 2.14,4.53 -0.45,-0.12 -0.07,-0.23 0.78,-1.5 1.19,0.02 -0.12,1.35 -1.33,0.48 z m 28.04,15.829996 -0.28,-0.23 0.9,-1.6 0.68,-0.4 0.23,0.75 0.51,0.37 -0.26,0.52 -0.43,0.34 -0.63,-0.18 -0.72,0.43 z m -26.66,-23.319996 -0.89,-0.07 0.02,-0.19 2.36,-1.84 0.04,0.96 -0.23,0.63 -0.25,0.34 -1.05,0.17 z m 67.46,10.22 -0.38,-0.53 0.19,-0.76 1.02,-0.91 0.25,0.15 0.23,1.75 -1.31,0.3 z","PB":"m 610.69257,199.41114 -2.5,-2.06 -0.82,-0.26 -2.65,-0.21 -2.31,1.07 -1.48,1.28 -0.45,1.8 -1.9,1.03 -2.01,0.45 -1.14,-0.02 0,0.6 -0.8,0.53 -2.18,0.29 -3.88,-0.26 -1.61,0.88 -0.55,0.64 -1.82,0.1 -0.89,0.69 -0.54,0.76 0.39,0.73 0.01,0.54 -0.4,0.48 -1.78,1.53 -1.34,0.16 -1.65,0.84 -1.6,-0.79 -0.95,-0.94 -0.35,-2.24 0.24,-0.49 -0.18,-0.3 -1.14,-0.32 -0.44,0.29 -1.51,0.25 0.04,-0.45 2.53,-2.64 0.17,-0.43 -0.72,-1.87 -0.04,-0.47 0.37,-0.78 3,-1.07 0.11,-0.3 -0.5,-1.39 -3.5,-1.92 -1.48,0.41 -2.22,1.26 -0.93,1.51 -1.48,0.87 -1.05,0.31 -2.7,1.88 -1.52,1.64 -1.63,0.23 -2.63,0.97 -0.77,-0.33 0.05,-0.68 -0.63,-1.24 -0.38,-0.08 -0.93,0.73 -1.51,0.32 -0.99,-0.33 -1.4,-1.91 -0.4,-0.09 0,0 -0.17,-0.25 1.19,-1.12 1.61,-3.49 -0.34,-1.19 -0.69,-0.08 -1.24,-0.89 0.02,-1.66 -0.35,-0.72 -0.58,-0.29 -0.24,-0.41 0.12,-0.93 0.17,-0.38 1.09,-0.63 0.66,-1.31 -0.52,-1.31 1.03,-3 0.84,-1.15 0.08,-0.54 0,0 0.57,-0.46 1.93,1.64 0.9,0.42 2.88,0.61 1.16,-1.13 3.23,-1.66 0.82,-0.71 0.1,-1.04 0.41,-0.95 3.18,-1.21 1.43,-0.12 3.26,-1.04 0.64,0.08 0.53,0.44 0.01,1.19 -2.99,3.21 -0.44,0.96 -0.38,1.74 -0.41,0.38 -0.85,0.25 -0.21,0.31 -0.08,1.72 3.53,0.52 0.32,0.23 0.31,1.38 0.29,0.23 3.15,-1.26 1.77,-0.08 1.95,0.3 0.89,1.17 -0.52,1.54 0.83,0.74 2.35,-0.93 0.5,-0.74 0.55,-1.21 -0.47,-0.94 -0.16,-1.42 0.48,-0.59 1.01,0.32 -0.53,-1.53 -0.72,-0.78 0.31,-1.48 1.82,-1.35 1.38,-0.05 0.42,0.39 -0.1,1 0.62,0.49 3.42,0.4 0.53,0.35 5.83,-0.39 2.17,0.3 2.46,1.1 1.04,-0.4 3.5,0.21 0.93,-0.24 0,0 0.09,2.4 1.45,4.39 0.06,0.64 -0.18,0.94 -0.37,0.45 -0.03,0.88 0.58,-0.74 0.51,-1.5 0.01,1.98 0.59,1.01 -0.27,5.18 -0.36,0.6 z","PR":"m 397.01257,499.66114 -5.24,-0.03 -0.33,0.44 -1.74,0.24 -0.76,-0.07 -0.11,-0.39 -1.57,0.57 -1.35,1.43 -3.35,2.13 -1.44,-0.16 -1.23,-0.62 -3.13,-2.6 -1.03,-0.39 -0.76,-0.01 -2.84,0.73 -2.33,0.17 -0.81,-0.03 -1.42,-0.76 -1.11,0.14 -1.53,0.65 -0.59,1.47 -0.73,0.87 -1.87,0.98 -3.57,-0.41 -2,1.15 -0.72,0.77 -0.69,1.59 0.85,2.99 -0.87,0.86 -0.92,0.02 -0.75,0.38 -0.17,0.49 -1.33,-1.89 -4.25,0.13 -3.76,-0.43 -1.58,-1.18 -0.16,-0.41 -1.03,-0.63 -4.26,-0.36 -5.29,-1.68 -2.34,0.57 -2.69,-0.03 -2.02,-1.41 -0.32,-0.51 -1.06,-0.24 -0.53,-0.01 -0.71,0.37 -3.63,-0.02 0,0 -0.22,-1.21 -2.53,-4.18 0.02,-2.59 -0.99,-2.88 -3.42,-2.37 -1.09,1.13 -2.12,-0.11 -1.1,0.43 -1.07,0.9 -1.46,-1.08 -0.82,0.06 -0.28,-2.2 0.66,-1.57 1.07,-1.27 1.22,-2.18 0.06,-0.34 -0.49,-0.75 0.02,-1.24 0.9,-3.64 1.26,-3.02 -0.25,-2.3 1.28,-2.38 -0.21,-1.02 -0.84,-0.88 -0.31,-1.6 0.66,-1.06 0.79,-0.54 0,0 2.38,-1.56 0.36,-0.82 1.57,-7.92 0.33,-0.35 1.11,-0.32 1.66,-1.01 0.67,-0.68 1.45,-3.56 -0.02,-1.15 0.93,-2.33 1.11,-0.82 5.41,-2.27 0,0 3.26,-2.29 3.83,0.65 4.01,-0.11 3.27,0.29 1.21,-0.62 0.35,-0.6 0.73,-0.37 1.17,0.29 1.48,0.78 2.52,0.46 2.64,1.09 1.31,0.13 1.07,-0.54 2.58,-0.01 0.78,1 1.75,0.84 3.51,0.8 0.63,0.51 0.71,1.32 1.73,0.07 0.42,-0.34 1.65,0.15 0.66,0.54 5.31,0.13 2.97,-0.85 1.13,1.55 3.59,2.83 0.89,1.76 0.01,2.74 -0.39,0.58 -0.16,0.81 0.38,1.84 1.3,1.51 -0.08,1.76 -0.36,0.56 1.49,3 1.21,1.15 0.67,0.28 0.5,0.68 -0.05,0.89 0.92,1.97 0.6,0.29 0.25,0.44 -0.25,1.05 -1.27,2.13 0.32,2.04 0.6,0.38 1.01,0.21 2.38,-0.12 3.42,-0.53 0.5,0.39 1.58,-0.19 1.59,0.13 1.61,1.26 -0.14,0.41 -0.89,0.65 -0.69,3.3 0.35,0.78 1.07,0.53 0.65,-0.85 1.1,-2.76 0.76,-0.17 2.14,0.58 -0.4,1.95 0.73,3.3 1.42,0.58 0.16,1.32 0,0 -1.35,1.02 -0.61,1.48 -0.55,-0.12 0.27,-1.94 1.44,-0.95 -1.41,0.28 -0.89,0.49 -0.87,-0.02 -0.34,-0.39 -0.57,-0.17 -0.54,0.37 -0.28,0.93 0.52,0.8 -0.73,0.96 -0.3,0.1 -2.48,-0.53 -0.79,-0.54 -0.45,0.12 -0.18,0.9 0.34,0.37 1.61,0.56 1.4,-0.25 2.13,0.6 0.27,0.48 -0.97,0.68 -1.54,2.78 -1.24,0.77 -2.42,0.57 -0.2,0.45 2.95,-0.2 0.15,1.19 z","PE":"m 558.54257,227.45114 -1.22,-3.04 -0.01,-0.94 -2.11,-0.86 -0.5,-0.37 -0.45,-0.83 0.61,-0.89 -0.02,-0.62 -0.45,-0.32 -1,0.01 -0.43,0.44 -0.29,1.74 -0.43,0.15 -0.39,-0.26 -0.54,-1.65 -1.58,-1.15 -2.99,-0.4 -2.36,-0.77 -1.35,-0.81 -0.83,-1.44 -1.49,-0.56 -0.59,0.11 -2.53,1.46 -1.65,0.44 -0.77,2.05 -2.23,0.45 -0.29,0.25 0.25,1.36 -0.17,0.59 -1.1,1.24 -2.39,1.03 -0.64,-0.06 -0.77,-0.53 -0.76,0.17 -0.5,0.87 -0.77,3.57 -2.87,0.88 -0.82,0.92 -0.96,0.23 -1.84,-0.62 0.92,-1.68 -0.26,-2 -2.21,-0.91 -0.72,-1.94 0.06,-2.73 -0.44,-0.51 -2.81,-1.38 -2.2,-0.29 -1.16,0.26 -0.9,-0.4 0,0 2.62,-1.27 1.97,-1.71 0.54,-0.87 2.29,-1.33 0.97,-0.28 3.89,-3.87 0.74,-1.76 0.06,-2.27 -0.29,-0.54 -1.62,-1.58 0.07,-2.19 -0.6,-1.13 -0.06,-0.95 0.11,-0.45 0.52,-0.33 1.79,-0.16 0,0 4.93,0.2 0.89,0.24 1.63,-0.19 2.14,-0.8 1.29,-0.1 3.08,0.42 2.85,1.9 1.83,0.83 0.46,0.99 1.01,1.07 1.36,0.48 0.78,0.57 0.63,1.64 1.65,-0.05 1.54,-2.29 1.07,-0.83 1.59,-0.49 0,0 0.4,0.09 1.4,1.91 0.99,0.33 1.51,-0.32 0.93,-0.73 0.38,0.08 0.63,1.24 -0.05,0.68 0.77,0.33 2.63,-0.97 1.63,-0.23 1.52,-1.64 2.7,-1.88 1.05,-0.31 1.48,-0.87 0.93,-1.51 2.22,-1.26 1.48,-0.41 3.5,1.92 0.5,1.39 -0.11,0.3 -3,1.07 -0.37,0.78 0.04,0.47 0.72,1.87 -0.17,0.43 -2.53,2.64 -0.04,0.45 1.51,-0.25 0.44,-0.29 1.14,0.32 0.18,0.3 -0.24,0.49 0.35,2.24 0.95,0.94 1.6,0.79 1.65,-0.84 1.34,-0.16 1.78,-1.53 0.4,-0.48 -0.01,-0.54 -0.39,-0.73 0.54,-0.76 0.89,-0.69 1.82,-0.1 0.55,-0.64 1.61,-0.88 3.88,0.26 2.18,-0.29 0.8,-0.53 0,-0.6 1.14,0.02 2.01,-0.45 1.9,-1.03 0.45,-1.8 1.48,-1.28 2.31,-1.07 2.65,0.21 0.82,0.26 2.5,2.06 0,0 0.88,0.23 0.55,1.22 -1.27,1.72 -0.11,0.55 0.01,0.48 0.7,0.37 0.27,0.5 0.19,1.06 -1.96,6.38 -3.25,8.95 0,0 -0.27,-0.21 -2.9,-0.27 -1.92,-0.81 -1.47,0.19 -2.56,1.29 -2.24,-0.85 -2,0.24 -1.55,1.24 -0.12,0.45 -2.18,2.29 -1.81,1.11 -1.16,-0.05 -1.86,1.06 -1.17,0.11 -3.14,-0.29 -2.5,0.65 -1.91,-0.48 -1.78,-1.05 -1.9,-2.12 -2.55,-2.02 -1.08,0.12 -1.67,-0.3 -1,-1.22 -0.82,0.6 -0.09,0.69 -2.38,3.29 -2.17,0.76 -0.64,1.09 z","PI":"m 505.96257,127.17114 1.31,0.12 0.69,-0.23 2.24,0.51 0.99,0.85 0.32,0.6 0,0 -0.11,0.8 -1.09,1.85 -1.58,1.97 -0.18,1.46 0.29,1.29 1.8,4.72 3.15,6.42 0.44,1.73 1.36,1.59 -0.02,0.76 -0.74,1.36 0.79,3.87 -0.48,1.6 1,2.01 0.6,2.99 -0.59,1.58 -0.8,0.58 0.92,0.69 0.11,0.38 0.94,8.16 -0.24,0.45 0.76,2.57 1.05,5.2 1.01,2.67 1.31,0.65 2.56,0.47 0.77,1.16 -0.01,0.69 -1.5,2.25 -1.14,3.11 0.08,0.97 0.68,0.68 -0.06,1.32 0,0 -1.79,0.16 -0.52,0.33 -0.11,0.45 0.06,0.95 0.6,1.13 -0.07,2.19 1.62,1.58 0.29,0.54 -0.06,2.27 -0.74,1.76 -3.89,3.87 -0.97,0.28 -2.29,1.33 -0.54,0.87 -1.97,1.71 -2.62,1.27 0,0 -0.45,1.16 -1.5,2.3 -1.05,0.67 -0.79,-0.18 -2,0.38 0.11,2.4 -1.86,1.8 -0.32,-0.05 -0.62,-0.62 -2.16,-0.01 -0.82,0.98 -0.77,0.36 -2.73,0.34 -1.51,1.34 -0.82,1.22 -1.7,0.1 -1.48,0.64 -3,0.11 -0.82,-0.28 -0.19,-0.28 0.13,-0.66 -1.71,-0.98 -1.33,-0.39 -1.39,0.55 -2.13,0.43 -0.32,-0.18 -0.41,-0.93 -1.5,-0.46 -1.95,0.02 -3.24,1.65 -0.06,0.93 2.24,4.44 0.12,1.15 -0.29,2.57 -0.25,0.91 -0.72,0.86 -2.95,5.05 -2.97,2.42 -1.35,0.42 -1.48,-0.53 -1.34,-0.17 -2.2,0.75 -1.17,0.89 -0.67,0.87 -1.14,0.38 -0.75,1.45 -0.33,0.21 -2.11,-0.18 -1.8,0.52 -4.18,-1.85 -1.77,-2.49 -0.53,-2.21 -0.66,-1.04 -1.44,-1.34 -2.33,0.02 0,0 -2.94,-0.21 0,0 0.05,-1.92 0.26,-1.06 1.15,-2.45 0.13,-6.36 0.76,-1.4 0.03,-0.51 -1.73,-3.06 -0.47,-3.19 -0.7,-1.94 0.73,-2 1.7,-1.4 1.2,-2.48 0.13,-1.51 0.34,-0.83 0.3,-0.21 1.44,-2.74 0.63,-2.32 0.39,-2.97 0.98,-2.98 2.13,-1.95 2.72,-0.76 2.61,-0.31 1.07,-0.37 1.7,-1.53 1.05,-0.04 1.34,-0.52 2.86,-2.57 2.34,-0.91 2.01,-2 0.63,-0.87 0,-0.46 1.9,-1.92 0.5,-0.22 0.84,-0.24 0.23,0.3 1.12,-0.26 1,-0.6 1.46,-0.19 1.01,0.21 2.51,1.82 1.51,-0.1 2.44,-0.86 0.83,-0.04 0.65,0.28 2.28,-0.29 1.21,-1.31 0.5,-1.46 0.12,-1.21 0.29,-0.44 0.39,-2.2 -0.13,-0.85 -0.17,-0.5 -1.61,-0.91 -1.78,-2.03 -0.51,-2.3 -0.11,-2.11 0.17,-2.48 4.1,-4.43 0.21,-0.55 0.1,-2.43 -0.55,-2.98 -1.58,-2.8 1.14,-2.87 0.28,-1.47 -0.38,-1.27 -1.23,-0.84 -0.35,-1.92 0.77,-1.05 0.64,-0.17 0.82,-1.98 1.89,-1.85 0.88,-1.83 -0.04,-1.79 2.92,-3.41 0.81,0.16 3.31,-0.46 4.13,-3.97 1.79,-2.27 0.39,-1.53 -0.64,-0.53 -0.22,-0.72 0.46,-1.44 0,0 0.73,0.12 1.47,0.87 0.51,0.51 -0.13,0.31 z","RJ":"m 468.61257,450.54114 -0.07,-0.78 0.38,-0.27 3.19,0.22 2.59,-0.59 -2.53,-1.55 -1.4,-0.5 -2.81,0.68 -1.36,1.6 -1.03,0.32 -0.7,-0.05 -1.35,-2.15 -0.48,0 -0.9,0.42 -0.96,1.06 -3.15,0.8 -0.34,0.91 -0.19,1.9 2.19,0.13 1.07,1.01 -1.15,1.08 -0.94,-0.17 -1.42,0.17 0,0 -0.48,-0.26 -1.63,-1.73 -0.05,-0.41 1.09,-3.5 1.09,-1.15 2.35,-1.01 0.5,0.15 2.77,-0.36 1.5,-0.71 1.65,-2.15 -0.75,-1.64 -1.7,-0.01 -3.15,0.53 -1.77,-0.39 -1.23,-1.59 -0.56,-1.17 -1.27,-0.54 0,0 0.68,-0.49 2.42,-0.74 2.91,-1.34 2.58,-0.17 0.5,0.27 1.72,-0.77 1.05,-0.77 4.09,-1.79 0.52,-0.07 0.36,0.31 3.2,-0.07 1.25,-0.17 1.63,-0.94 0.57,-0.06 2.53,0.27 0.49,0.17 -0.02,0.47 1.38,-0.2 9.51,-4.53 2.53,-0.99 0.21,-0.52 -0.28,-0.61 -1.44,-0.13 0.09,-0.75 1.89,-3.71 2.36,-6.04 -0.73,-0.71 0.56,-0.49 1.24,-0.27 2.53,-2.36 0,0 1.93,0.76 0.67,4.71 2.5,1.13 4.33,1.01 2.99,-0.37 1.62,1.06 0,0 -0.08,1.27 -0.94,1.61 -0.22,2.13 1.14,6.78 -0.5,0.68 -3.08,1.75 -5.97,1.94 -2.83,1.72 -3.5,3.69 -0.11,1.66 0.31,1.19 -0.19,1.62 -0.73,1.48 -1.82,0.51 -6.55,-0.17 -5.79,0.7 -2.39,-0.46 -0.49,-0.38 -0.06,-0.68 1.03,-1.48 0.67,-1.45 -0.09,-0.62 -0.78,-0.18 -2.79,1.15 -0.26,0.69 0.31,0.79 1.38,1.17 0.25,0.97 -0.59,0.52 -1.63,0.51 -1.57,-0.03 -8.04,1.07 -1.46,0.45 z m -5.11,1.99 -0.67,-0.97 2.11,-1.55 1.86,0.94 0.43,0.7 -2.46,0.5 -0.41,-0.35 -0.47,0 -0.39,0.73 z","RN":"m 609.55257,183.17114 -0.93,0.24 -3.5,-0.21 -1.04,0.4 -2.46,-1.1 -2.17,-0.3 -5.83,0.39 -0.53,-0.35 -3.42,-0.4 -0.62,-0.49 0.1,-1 -0.42,-0.39 -1.38,0.05 -1.82,1.35 -0.31,1.48 0.72,0.78 0.53,1.53 -1.01,-0.32 -0.48,0.59 0.16,1.42 0.47,0.94 -0.55,1.21 -0.5,0.74 -2.35,0.93 -0.83,-0.74 0.52,-1.54 -0.89,-1.17 -1.95,-0.3 -1.77,0.08 -3.15,1.26 -0.29,-0.23 -0.31,-1.38 -0.32,-0.23 -3.53,-0.52 0.08,-1.72 0.21,-0.31 0.85,-0.25 0.41,-0.38 0.38,-1.74 0.44,-0.96 2.99,-3.21 -0.01,-1.19 -0.53,-0.44 -0.64,-0.08 -3.26,1.04 -1.43,0.12 -3.18,1.21 -0.41,0.95 -0.1,1.04 -0.82,0.71 -3.23,1.66 -1.16,1.13 -2.88,-0.61 -0.9,-0.42 -1.93,-1.64 -0.57,0.46 0,0 -0.66,0.38 -0.64,-0.17 0.34,-1.97 1.41,-2.25 0.84,-0.88 0.51,-0.07 0.78,0.51 1.03,-0.26 0.57,-1.1 1.46,-1.51 1.4,-2.44 -0.15,-0.74 0.65,-1.67 0.87,-0.57 0.84,-1.12 3.3,-6.69 2.61,-2.01 4.89,-1.59 0,0 0.47,0.76 0.86,0.75 3.13,-0.01 1.22,0.41 1.69,1.75 1.32,0.5 3.33,-0.32 2.88,0.52 2.54,-0.24 2.33,-0.73 4.5,0.92 1.27,0.04 1.95,0.86 1.02,0.82 0.64,0.94 2.31,4.74 0.5,1.79 -0.04,0.75 1.48,5.38 0.21,1.68 0.72,0.54 0.96,2.69 z","RS":"m 322.25257,638.78114 -0.36,0.01 -1.94,-1.11 -0.2,-0.46 0.52,-4.27 -0.46,-4.25 0.15,-1.07 0.63,-1.24 2.84,-2.38 0.83,-1.56 2.3,-2.56 -1.46,-1.65 -1.07,-0.62 -2.25,-0.6 -2.32,-2.25 -1.21,-1.62 -0.1,-1.59 -0.43,-1.18 -1.23,-2.03 -2.06,-2.24 -0.67,-0.59 -2.39,-1.21 -1.45,0.21 -1.9,-1.51 -1.52,-1.63 -1.25,-0.78 -0.14,-1.7 -1.9,-2.16 -3.32,-0.46 -0.92,-0.47 -1.73,-1.66 -1.76,0.13 -2.17,-1.38 -1.91,-3.71 -1.11,-1.49 -2.53,-2.12 -0.7,0.08 -0.67,1.79 -2.59,2.24 -2.67,0.12 0.1,-2.86 0.4,-1.28 -0.39,-1 -3.65,-4.29 -2.37,-1.77 -2.18,-2.06 -1.75,-2.11 -2.69,-2.21 -1.9,-0.14 -2.15,0.21 -1.14,1.36 -0.06,0.96 -1.03,0.97 -1.11,0.02 -0.58,-0.48 -3.16,0.14 -0.65,-0.48 -0.16,-0.91 -0.49,-0.22 0.85,-0.22 1.04,-0.72 2.52,-2.77 0.11,-1.84 0.6,-1.25 0.82,-0.45 1.29,-0.07 0.64,-0.26 0.92,-1 5.45,-6.48 0.63,-1.42 0.17,-1.11 0.82,-1.07 1.2,-0.85 1.37,-0.41 1.96,-4.22 0.1,-0.61 0.31,-0.37 1.64,-0.86 1.63,-1.8 0.85,-1.15 0.51,-1.29 1.34,-2.1 0.93,-0.29 1.57,0.18 0.55,0.79 0.47,-1.28 -0.21,-0.58 -1.35,-0.82 -0.05,-0.36 0.35,-0.33 1.08,-0.38 0.82,-0.96 2.79,-0.95 1.05,-1.07 0.1,-0.92 0.82,-0.91 2.21,-1.15 2.47,-0.4 1.77,-1.81 0.15,-1.06 1.32,-2.36 0.33,-0.04 0.05,0.36 0.29,0.2 1.33,-0.17 2.44,-1.13 2.68,-0.59 1.21,-0.57 2.1,-2.35 0.5,0.01 0.67,-0.39 1.01,-1.35 2.31,-0.73 0.3,0.38 0,0 3.52,0.39 3.26,-1.15 0.56,-0.81 1.35,0.58 -0.15,0.92 3.08,-0.03 1.63,0.99 2.56,-0.37 1.92,1.15 2.58,-0.41 1.54,0.18 2.8,-0.16 2.26,0.92 2.48,1.4 1,2.44 1.59,0.19 0.09,-0.48 1.81,-0.35 5.56,3.54 1.37,1.55 0.71,-0.03 1.56,0.98 3.03,3.49 1.64,2.21 0.48,1.48 2.17,2.66 1.17,0.55 6.69,1.06 2.11,-0.4 3.35,0.34 0.88,2.34 -2.08,1.58 -1.27,0.41 -0.73,1.86 0.22,2.19 -0.38,1.56 -0.52,1.3 -1.18,0.2 -1.29,1.69 -0.03,1.41 1.8,1.17 0.27,-0.2 -0.28,-0.97 0.01,-0.96 1.49,-0.82 1.58,0.64 0.73,0.91 1.17,0.85 0.45,-0.03 0,0 -1.4,1.73 -3.9,7.04 -4.21,11.6 -6.3,10.48 -5.44,6.66 -6.51,5.96 -6.09,3.68 -3.1,4.31 -0.18,-0.43 0.65,-1.58 0.34,-2.18 -1.18,-1.71 0.1,-0.42 0.93,-0.17 1.01,0.4 0.56,0.58 1.02,0.04 2.58,-1.41 0.82,-0.68 2.85,-3.71 0.75,-0.69 0.45,0.19 1.02,-0.19 1.05,-0.84 0.93,-1.27 0.37,-1.48 0.18,-0.93 -0.23,-2.1 0.2,-1.37 1.57,-0.07 0.74,0.3 0.27,0.83 0.35,-0.26 -0.29,-1.4 0.51,-2.07 0.48,-0.57 2.74,-1.59 0.73,-1.08 0.47,-2.75 -0.21,-2.28 0.56,-0.68 0.5,0.8 0.37,0.03 0.43,-0.42 0.47,-3.08 -0.1,-0.44 -0.95,-1.22 -0.67,-0.03 -0.26,0.69 0.17,0.39 -0.14,0.57 -0.35,0.2 -1.51,-0.02 -2.01,0.4 -0.34,1.61 -0.53,0.05 -0.81,-0.44 0.1,-1.71 -0.82,-0.89 -1.04,0.33 -0.6,-0.48 -0.73,-1.26 -0.4,-1.45 0.12,-0.57 -0.64,-0.69 -0.61,2.71 0.44,2.25 1.25,2.11 -0.57,0.81 -0.74,2.54 0.38,3.03 -0.18,0.77 -0.48,-0.37 0.26,-0.24 -0.03,-0.71 -0.47,-1.28 -0.45,-0.39 -0.53,0.66 -0.03,1.37 -1.41,3.27 -0.05,1.89 0.22,0.52 -0.72,0.7 -1.61,0.64 -0.61,1.58 -4.09,1.57 -0.72,0.53 -0.53,1.59 -0.1,2.27 -0.97,2.27 -2.36,1.3 -0.11,1.76 0.48,0.83 0.25,1.02 -0.95,0.56 -0.25,1.51 0.43,0.6 0.68,-0.14 1.3,0.63 0.15,0.91 -2.13,1.65 -2.32,4.52 -1.93,6.88 -2.01,4.49 -1.68,2.52 -7.79,7.53 z","RO":"m 187.58257,291.21114 -1.29,-1.45 -0.44,-1.88 -1.56,-0.52 -0.86,0.32 -1.81,0.08 -4.07,-1.81 -0.01,-0.4 -0.66,-0.61 -1.27,0.59 -1.98,-1.68 -1.52,-0.97 -0.86,-1.46 -0.28,-1.39 -1.04,-0.39 -1.77,1.12 -1.22,-0.03 -1.41,-0.8 -0.87,-1.33 -3.13,-1.58 -1.96,-0.17 -1.14,0.54 -0.9,0.85 -1.43,-0.17 -0.31,-0.3 -2.14,-0.51 -3.06,-0.28 -0.76,-0.43 -1.18,-1.19 -0.3,-1.97 -1.58,-0.49 -1.89,-0.97 -0.82,-1.72 -0.29,-0.2 -2.72,-0.28 -0.38,-0.35 -0.84,-3.71 -0.88,-0.89 -0.48,1.16 -0.66,-0.32 -0.27,-0.64 0.62,-1.53 -0.84,-1.52 -1.36,-0.39 -1.26,-3.47 -0.17,-1.66 1.55,-2.91 -0.21,-1.66 -1.16,-1.97 -0.75,-2.16 -0.06,-2.29 0.62,-0.5 0.38,-1.37 1.04,-1.05 0.36,-1.47 -0.24,-1.49 -0.42,-0.89 -0.09,-1.53 0.54,-1.65 -1.17,-2.18 -1.02,-0.38 -1.09,0.98 -0.06,0.51 -0.84,0.96 -0.57,0 -2.18,-1.02 -5.18,0.08 -5.61,1.78 -1.69,-0.01 -1.48,0.48 0,0 -2.97,-1.26 0,0 3.26,-2.56 1.92,-0.58 1.55,-1.81 0.15,-0.56 -0.16,-1.29 3.96,0.26 2.87,-0.33 0.72,0.37 2.31,2.33 0.37,-0.02 1.22,-0.79 0.13,-0.72 0.41,-0.53 1.08,-0.5 0.77,0.13 1.37,-0.39 1.3,-1.21 1.84,-1.02 0.38,0.09 0.64,2.26 0.68,0.53 0.68,-0.08 2.54,-3.16 -0.26,-1.75 0.53,-0.84 1.75,-1.26 0.46,0.02 0.84,0.55 1.79,0.1 1.2,-1.07 2.13,-0.38 3.87,0.46 -0.24,-1.46 0.11,-1.81 2.06,-1.21 0.81,-1.15 0.36,-1.02 -0.17,-0.45 -0.9,-0.7 0.05,-0.67 1.19,-1.59 2.48,-0.53 0.26,-0.22 -0.09,-1.17 1.72,-0.5 1.38,-2.56 10.79,-0.06 2.15,1.13 0.45,0.49 0.8,1.91 1.33,1.27 2.54,0.98 1.25,3.27 0.46,0.21 0.98,-0.13 0.62,0.2 0.68,2.88 3.24,1.48 0.68,-0.19 0.54,-1.74 1.92,-1.08 1.39,0.28 0.36,0.38 -0.04,0.7 0,0 1.4,0.97 0.6,1.24 -0.76,1.42 -1.29,4.99 0.06,0.35 0.78,0.47 0.26,0.61 0.15,1.39 0.83,2.27 -0.94,1.67 0.38,1.93 -1,3.52 -0.03,0.8 0.27,1.76 1.5,2.75 -0.9,9 17.16,0.05 -0.24,0.56 1.22,1.11 3.5,-0.09 1.11,0.11 1.07,0.43 1.41,3.59 -0.17,0.75 -1.4,1.75 -1.36,1.08 -0.14,1.32 0.43,3.25 0.58,0.51 0.9,-0.03 1.53,3.34 -0.04,2.05 0.58,1.49 -0.07,1.71 -0.56,2.24 -1.66,2.01 -0.52,2.25 -0.58,0.84 -0.43,0.41 -1.64,0.53 -0.93,1.08 -1.43,3.78 -0.52,2.45 -4.11,2.57 -1.47,1.43 0,0 -0.74,-0.04 -2.59,-1.55 -1.27,-1.43 -7.08,0.96 -1.32,-0.43 -0.25,-0.3 -3.38,0.66 -0.48,-0.16 -0.52,-1.35 z","RR":"m 234.87257,61.661144 1.6,16.97 0,0 -18.49,-0.07 0.03,0.68 -2.33,3.26 -1.66,3.03 -0.07,1.13 -1.15,2.64 -0.11,0.66 0.23,0.73 1.14,1.41 -0.02,0.53 -0.42,0.39 -2.03,0.55 -1.41,1.41 -1.25,0.46 -1.82,-0.23 -0.92,-2.51 -1.87,-2.04 -2.83,-0.93 -1.6,0.06 -0.55,0.89 -2.09,0.71 -1.28,0.69 -1.02,1.26 -0.82,2.97 0.37,1.8 -0.25,1.73 -0.75,2.289996 0.44,2.11 -2.36,-1.04 -1.34,0.42 -0.53,-0.07 -1.04,-2.04 -1.48,-1.649996 -1.96,-1.31 -0.52,-0.04 -5.01,-4.42 0.14,-1.14 1.84,0.33 1.14,-1.32 0.06,-0.58 -1.13,-4.33 -0.58,-0.9 -1.22,-0.84 -0.88,-2.17 -0.29,-4.98 0.57,-0.96 0.77,-3.04 -0.66,-1.58 -0.36,-1.59 1.62,-1.46 -0.05,-0.45 -0.87,-1.12 -0.19,-2.26 -1.66,-4.76 -2.73,-3.74 0.71,-1.5 0.91,-3.32 -0.49,-0.66 -1.95,-0.95 -1.36,-0.11 -0.88,0.21 -0.97,-0.37 -1.21,-1.17 -0.06,-0.96 -0.63,-0.11 -1.13,0.42 -0.61,-0.01 -0.75,-0.34 -0.72,-0.78 0,0 0.3,-0.46 0.23,-2.28 -0.3,-0.22 -3.37,-0.23 -3.75,0.14 -3.31,-0.7 -0.2,-0.6 0.8,-1.76 0.12,-1.48 -0.73,-1.77 -1.94,-3.54 -0.73,-2.06 -0.47,-3.72 0.79,-1.48 -0.08,-0.96 -1.84,-2 -2.16,-1.06 -2.81,-2.78 -1.06,-1.81 -0.29,-0.96 -1.14,-0.65 -0.25,-0.39 0.03,-0.84 0.29,-0.33 0.9,0.07 1.12,0.66 0.94,1.73 0.61,0.09 3.39,-0.5 1.35,0.1 1.91,0.59 0.61,1.2 0.55,1.93 0.54,0.35 0.96,-0.08 0.74,-0.65 0.95,-0.4 3.18,0.16 0.47,0.05 1.31,1.21 0.6,0.15 0.52,-0.14 0.61,-1.56 1.31,0.14 1.45,0.93 3.93,4.57 1.05,0.57 0.71,0.11 1.51,-0.68 0.74,-1.13 0.1,-0.84 -0.83,-2.76 0.36,-1.74 0.46,-0.28 1.93,-0.05 1.01,-1.1 1.55,-1.09 0.75,0.05 3.9,1.34 0.59,-0.17 0.8,-0.72 1.03,-0.3 1.13,0.35 1.03,-0.21 1.34,-1.28 1,-0.25 1.15,0.23 1.11,-0.07 0.68,-0.85 0.05,-1.35 3.03,-1.81 2.33,0.19 2.76,-0.39 0.89,-1.13 0.09,-0.71 0.59,-1.1199998 0.75,-0.13 1.85,-0.9 1.1,-1.04 1.11,-1.71 -1.2,-3.56 -1.17,-0.36 0.64,-0.18 1.43,0.07 0.8,0.32 3.57,-0.1 1.06,-0.95 0.74,-0.22 1.37,0.42 0.53,1.31 1.04,0.8 0.48,1.37 -0.67,4.9 -0.72,1.3799998 -1.25,0.7 0.06,0.83 1.61,0.41 1.62,-0.22 2.35,0.81 1.82,1.1 -0.88,1.43 -0.01,1.15 2.34,3.42 0.2,1.55 -1.51,2.92 -1.88,1.41 -0.72,1.5 0.27,0.39 0.06,2.17 -1.47,2.41 -0.9,2.77 -0.31,2.57 -0.09,2.67 0.98,1.87 0.51,1.76 -0.01,1.4 1.57,1.03 0.9,0.2 0.13,0.68 -0.46,5.15 0.12,0.74 1.81,0.29 -0.66,1.17 0.46,0.5 2.15,0.74 1.46,1.92 2.66,2.74 z","SC":"m 379.56257,558.27114 -0.45,0.03 -1.17,-0.85 -0.73,-0.92 -1.59,-0.63 -1.48,0.82 -0.01,0.96 0.28,0.97 -0.27,0.2 -1.8,-1.17 0.04,-1.41 1.28,-1.69 1.18,-0.2 0.53,-1.31 0.37,-1.55 -0.22,-2.19 0.73,-1.86 1.27,-0.42 2.08,-1.58 -0.88,-2.34 -3.35,-0.34 -2.11,0.4 -6.69,-1.06 -1.16,-0.54 -2.17,-2.66 -0.49,-1.48 -1.63,-2.21 -3.03,-3.49 -1.57,-0.99 -0.71,0.03 -1.37,-1.55 -5.56,-3.54 -1.81,0.34 -0.09,0.48 -1.6,-0.19 -1,-2.44 -2.47,-1.39 -2.27,-0.93 -2.79,0.16 -1.54,-0.18 -2.59,0.41 -1.91,-1.15 -2.57,0.36 -1.63,-0.98 -3.08,0.03 0.15,-0.93 -1.35,-0.58 -0.56,0.81 -3.26,1.16 -3.52,-0.39 0,0 1.45,-2.93 0.73,-2.09 -0.58,-3.25 0.41,-3.21 -0.04,-2.55 0.96,-1.75 0,0 3.63,0.02 0.71,-0.38 0.53,0.01 1.06,0.24 0.31,0.51 2.03,1.41 2.68,0.03 2.34,-0.58 5.29,1.68 4.26,0.36 1.02,0.63 0.17,0.41 1.57,1.18 3.77,0.42 4.25,-0.13 1.33,1.9 0.18,-0.5 0.74,-0.38 0.92,-0.02 0.87,-0.86 -0.85,-2.99 0.69,-1.58 0.72,-0.78 2,-1.14 3.57,0.4 1.87,-0.97 0.73,-0.87 0.59,-1.48 1.53,-0.65 1.11,-0.14 1.42,0.76 0.81,0.03 2.33,-0.17 2.84,-0.73 0.75,0.01 1.04,0.4 3.12,2.6 1.23,0.62 1.44,0.16 3.35,-2.13 1.35,-1.43 1.56,-0.57 0.12,0.39 0.76,0.07 1.74,-0.23 0.33,-0.44 5.24,0.03 0,0 -0.39,1.32 0.51,1.65 -0.07,0.39 -1.5,1.14 -0.98,-0.48 -0.82,-2.53 -0.02,1.12 0.59,2.72 1.71,1.66 0.56,0.95 -1.01,2.29 -0.16,2.32 0.1,0.43 0.76,0.73 0.26,5.86 0.31,0.55 0.43,0.2 0.77,-0.51 0.35,0.72 0.1,0.87 -0.47,0.06 -0.43,-0.28 -1.19,0.63 -0.34,3.84 0.57,2.59 -0.57,0.75 0.31,1.93 0.91,1.88 -0.86,2.34 -0.52,4.01 -1.71,4.68 -0.34,-0.1 -0.36,-0.76 0.21,-0.97 -0.92,-1.18 -0.26,0.33 0.18,2.43 1.16,0.83 -0.92,1.66 -1.64,0.65 -4.13,3.04 -2.8,2.56 -3.75,4.44 -1.04,1.88 z m 17.88,-26.55 -0.15,-0.47 0.25,-1.75 0.76,-2.4 -0.4,-1.18 0.16,-1.02 1.4,-0.76 0.22,0.06 0.66,0.94 -0.54,2.56 -0.82,0.86 -0.59,1.22 0.2,1.17 -1.15,0.77 z m -0.45,-24.37 -1.87,-2.02 2.55,-2.44 0.25,0.04 0.65,1.05 -0.86,1.32 -0.72,2.05 z","SP":"m 404.84257,488.18114 -0.16,-1.33 -1.42,-0.57 -0.73,-3.3 0.4,-1.95 -2.14,-0.58 -0.76,0.17 -1.1,2.77 -0.66,0.85 -1.06,-0.53 -0.35,-0.78 0.69,-3.3 0.89,-0.66 0.14,-0.4 -1.61,-1.27 -1.59,-0.13 -1.58,0.19 -0.5,-0.38 -3.41,0.53 -2.38,0.12 -1.01,-0.21 -0.6,-0.39 -0.33,-2.04 1.28,-2.12 0.25,-1.05 -0.25,-0.44 -0.6,-0.3 -0.92,-1.97 0.06,-0.89 -0.5,-0.68 -0.67,-0.29 -1.21,-1.14 -1.49,-3.01 0.36,-0.55 0.08,-1.76 -1.3,-1.52 -0.38,-1.84 0.17,-0.81 0.39,-0.58 -0.02,-2.74 -0.89,-1.76 -3.59,-2.83 -1.13,-1.55 -2.97,0.86 -5.31,-0.13 -0.66,-0.54 -1.65,-0.14 -0.42,0.34 -1.72,-0.07 -0.72,-1.32 -0.63,-0.51 -3.51,-0.8 -1.75,-0.84 -0.78,-1 -2.58,0.01 -1.07,0.54 -1.32,-0.13 -2.64,-1.09 -2.53,-0.46 -1.48,-0.79 -1.17,-0.29 -0.73,0.37 -0.34,0.6 -1.21,0.62 -3.28,-0.29 -4.01,0.11 -3.83,-0.65 -3.25,2.29 0,0 0.84,-1.08 0.73,-1.54 1.26,-1.14 7.56,-4.54 1.95,-1.87 1.26,-2.43 1.73,-1.69 0.4,-1.21 1.44,-1.03 0.28,-1.22 -0.35,-0.84 2,-2.26 1.21,-2.34 0.07,-0.94 -0.31,-1.93 0.23,-0.39 0.96,-0.52 2.6,-3.64 0.16,-2.93 0.62,-1.68 1.01,-0.3 0.73,-0.64 1.99,-2.68 1.22,-1.02 0.47,-0.23 1.31,-0.04 1.5,-0.78 0.28,-0.4 0.4,-2.46 0,0 1.22,-1.13 2.15,-1.11 1.92,-0.37 1.43,-1.69 1.5,-0.61 0.75,0.14 1.73,1.55 2.55,0.08 4.29,0.96 1.67,-0.36 1.62,0.22 2,-0.59 2.18,1.42 1.67,0.79 -0.13,0.92 0.33,1.42 1.21,2.09 0.63,0.03 0.54,-0.32 0.67,-0.94 0.41,-1.13 0.26,-0.19 0.55,0.05 0.36,0.39 0.25,0.96 0.01,2.78 1.2,0.53 0.41,-0.45 -0.27,-2.54 0.49,-1.19 0.45,-0.48 8.18,-0.67 1.01,-1.25 1.5,1.46 1.12,0.43 2.78,-0.69 0.44,-0.99 -0.2,-0.46 0.31,-0.61 2.38,-0.11 1.66,0.78 0.85,-0.64 1.31,-0.29 3.26,3.35 0.2,1.04 -0.57,1.01 -0.29,2.37 0.58,0.61 1.89,1.21 0.4,1.55 -0.06,0.56 -1.52,2.03 -0.18,1.94 0.79,0.74 0.31,0.61 0.37,2.21 1.3,1.8 0.83,1.99 -0.03,0.85 1.61,-0.05 0.78,-0.31 0.28,-0.36 1,-0.05 3.7,1.32 0.23,0.37 -0.05,1.27 -0.7,2.18 -1.86,2.72 0.26,2.94 -0.19,3.45 -0.53,1.56 0.72,1.6 1.78,1.24 1.81,0.83 0.51,1.72 -1.21,0.7 2.02,3.31 1.13,0.25 2.01,-0.24 0.18,0.53 3.62,-1 0.56,0.42 1.31,-0.32 0.75,-0.98 0.05,-0.84 -0.24,-0.24 0.17,-2.3 1.19,-0.33 0.09,0.35 -0.35,0.49 0.01,0.48 2.34,0.08 2.39,-0.25 1.79,-0.67 1.23,-1.24 1.93,-1.02 2.21,-0.22 1.24,-0.73 0,0 1.27,0.54 0.56,1.17 1.23,1.59 1.77,0.39 3.15,-0.53 1.7,0.01 0.75,1.64 -1.65,2.15 -1.5,0.71 -2.77,0.36 -0.5,-0.15 -2.35,1.01 -1.09,1.15 -1.09,3.5 0.05,0.41 1.63,1.73 0.48,0.26 0,0 -0.06,0.2 -1.69,0.42 -1.06,-0.82 -1.48,1.11 -0.43,0.65 0.27,0.22 -0.76,0.64 -3.22,1.55 -2.25,0.7 -0.28,0.44 0.04,0.96 0.5,1.55 -0.32,0.42 -1.4,0.26 -0.7,-0.64 -1.34,-0.29 -3.12,-0.5 -0.86,0.15 -1.32,0.34 -1.73,0.82 -0.5,0.51 -1.21,2.15 -1.31,0.57 -0.5,-0.12 0.58,-0.47 -0.48,-1.22 -1.17,-0.85 -0.83,1.23 0.26,0.75 -0.3,0.61 -7.62,4.24 -0.95,0.82 -0.31,1.16 -3.27,3 -3.25,1.95 -1.92,0.53 -4.5,3.21 -2.33,1.96 -0.67,0.08 -0.44,0.62 0.9,0.43 0.66,0.06 0.93,-0.36 0,0.76 -0.62,1.31 -1.32,0.85 -1.06,1.48 z m 44.31,-23.01 -1.54,-0.65 -1.16,0.18 -0.49,-0.38 0.1,-0.78 0.95,-0.65 1.09,-1.85 0.72,0.25 0.66,0.65 0.13,2.91 -0.46,0.32 z","SE":"m 570.20257,261.95114 -2.9,0.89 -1.55,-0.64 -0.54,-0.34 -0.48,-0.72 -1.92,-0.92 -0.6,-0.52 -0.12,-0.41 0.34,-0.39 0.13,-1.42 -0.15,-0.39 -1.43,-1.51 -0.52,-1.49 -1.09,-0.67 -0.96,-1.6 -0.02,-0.77 0.59,-1.58 0.32,-0.3 1.7,0.01 1.13,0.75 2.55,-0.99 0.69,-0.55 0.3,-0.58 -0.76,-2.75 0.08,-0.88 0.66,-1.62 0.08,-3.11 -0.75,-1.15 -1.99,-1.95 -1.27,-2.5 -0.22,-2.14 0.67,-1.15 0,0 6.46,2.98 3.68,0.95 5.42,3.07 1.3,2.45 1.76,1.45 1.66,0.79 0.46,0.03 3.59,2.23 0.6,1.31 0,0 -2.38,0.76 -4.57,2.94 -0.97,0.89 -1.55,2.21 -0.32,-0.02 0.11,-1.1 -1.05,-1.82 -0.99,0.16 0.34,1.16 1.24,0 0.23,0.24 -0.52,1.97 -1.27,2.09 -0.53,-0.35 -0.37,-0.67 -0.99,-0.16 0.2,0.68 1.13,0.62 -0.26,1.77 -0.86,1.15 -0.93,2.03 -0.78,0.15 -0.3,-0.46 0.48,-1.4 0.41,-0.13 0.31,-0.43 0.37,-1.04 -0.81,-0.37 0.1,0.68 -0.45,1.13 -0.48,0.5 -0.26,1.09 0.28,0.72 -0.26,0.52 z","TO":"m 433.61257,282.08114 -5.36,1.42 -1.74,1.34 -2.56,1.1 -1.55,0 -4.53,1 -2.52,2.08 -1.78,0.9 -0.46,-0.24 -1.51,-2.62 -0.55,-0.03 -0.51,3.3 -0.69,0.08 -3.35,-0.68 -3.13,-1.47 0.56,-1.56 -0.22,-0.74 -4.53,0.53 -2.76,-0.34 -0.56,0.54 -0.3,1 -0.75,0.75 -1.14,-0.05 -0.61,-3.1 -1.11,-3.71 -1.04,-1.88 -1.15,-1.31 -1.18,0.97 -1.47,2.39 -1.63,5.94 -0.63,0.23 -4.07,-1.43 -3.09,-1.71 -3.93,-0.4 -2.2,-1.03 -2.4,-0.4 0.52,-2.34 1.22,-1.88 0.03,-1.71 -0.56,0.3 -1.81,2.09 -0.66,1.23 -0.2,1.88 -0.34,0.45 0,0 -0.8,-0.02 -0.96,-0.51 -0.98,-3.34 0.74,-2.76 -0.44,-3.05 -0.52,-0.58 -0.01,-1.57 0.47,-3.31 -1.1,-2.25 0.05,-0.5 0.82,-0.89 0.16,-0.87 -1.39,-1.34 -0.06,-0.86 1.88,-5.99 0.04,-2.95 0.54,-2.97 1.94,-5.29 0.37,-0.27 0.43,-0.85 0.44,-3.14 1.1,-1.25 0.56,-1.89 0.65,-1.02 0,0 1.62,-3.69 1.13,-4.45 1.15,-1.58 1.19,-1.1 1.21,-1.68 1.03,-1.92 1.37,-0.92 1.05,-0.16 0.73,-0.85 0.94,-1.54 0.18,-0.99 1.7,-3.24 1.09,-0.8 1.76,-5.15 0.66,-4.04 -0.15,-0.3 -0.74,-0.32 -1.67,-1.74 -0.6,-0.95 -0.16,-0.88 0.14,-0.57 1.41,-1.69 1.29,-2.1 -0.06,-2.67 -0.43,-2.18 0.19,-0.35 2.47,-1.78 3.41,-1.14 2.5,-1.21 0.24,-0.5 -0.15,-1.51 0.86,-1.27 1.51,-1.34 1.29,-0.15 0.19,-1.34 -0.29,-1.2 0.25,-0.46 1.46,-0.46 0.64,-0.48 0.93,-2.75 -1.02,-1.34 -0.09,-1.4 0.29,-0.28 0.97,-0.08 0.72,-0.37 0.37,-0.66 0.03,-0.64 -1.26,-1.17 -0.87,-0.14 -0.39,-0.31 -1.02,-1.66 -1.29,-0.12 -1.87,0.25 -2.29,-0.81 0,0 0.53,-0.64 2.62,-1.85 1.96,-0.53 0.87,0.05 2.78,1.52 1.4,0.08 0.95,-0.52 1.74,0.29 0.59,0.69 0.08,1.03 0.28,0.32 1.22,0.03 3.4,1.43 0.84,1.03 0.47,3.5 0.64,1.5 -0.21,3.72 0.23,1.08 0.67,1.13 -0.01,0.44 -1.77,6.15 -0.31,2.37 0.28,1 -0.25,1.59 -1.75,2.04 -1.76,0.67 -0.18,0.71 1.94,1.32 0.42,-0.27 1.37,0.24 0.25,0.35 0.11,0.88 -0.62,1.19 0.85,1.44 0.88,-0.07 3,4.16 0.91,0.85 2.28,3.02 2.14,-1.34 4.27,-0.94 1.8,1.22 0.08,1.75 -0.64,3.25 0.39,1.35 -3.39,0.35 -1.34,0.54 -0.57,0.55 -0.68,1.43 -0.73,2.68 0.37,1.3 -2.63,2.55 -0.26,0.7 0.2,0.42 2.08,0.29 0.94,0.69 0.74,1.59 0.06,1.66 0.62,1.04 3.88,1.95 0.09,0.53 -1.64,1.81 0.13,1.65 2.14,1.62 0.99,2.87 1.34,2 0.71,0.18 1.78,-0.21 1,0.3 0.82,0.44 0.61,0.82 1.28,0.66 0,0 2.94,0.21 0,0 -0.69,0.65 -0.22,0.98 -0.56,0.47 -3.82,2.02 -3.21,2.62 -0.19,0.37 1.29,1.8 -0.36,0.39 -1.01,0.27 -0.9,0.61 -1.52,3.49 -1.01,0.72 -0.5,1.16 0.23,0.92 1.86,1.95 3.59,0.67 1.87,0.99 0.05,0.76 -0.56,0.45 -2.04,0.81 -0.43,0.96 0.09,0.5 0.35,0.33 1.03,-0.18 0.92,0.29 0.58,0.51 0.29,0.64 -0.96,0.71 -1.15,0.42 -1.95,1.67 -0.19,0.85 -0.05,2.92 0.35,1.25 0.94,0.66 1.05,0.24 0.41,0.25 0.17,0.42 0.05,1.06 -1.36,2.38 z"}};
+
+const MS={metric:"rel",scale:"fixed"};
+try{const m=JSON.parse(localStorage.getItem("fpe-proposta-map")||"null"); if(m) Object.assign(MS,m);}catch(e){}
+const FIX={pp:0.005,rel:0.15};
+const SVGNS="http://www.w3.org/2000/svg";
+const svg=document.createElementNS(SVGNS,"svg"); svg.setAttribute("viewBox",BRMAP.viewBox);
+const gP=document.createElementNS(SVGNS,"g"), gL=document.createElementNS(SVGNS,"g"); svg.append(gP,gL); $("map").append(svg);
+const PATHS={}, LABELS={};
+UF.forEach((u,i)=>{const p=document.createElementNS(SVGNS,"path"); p.setAttribute("d",BRMAP.paths[u.uf]); p.setAttribute("class","st"); p.dataset.i=i; p.setAttribute("tabindex","0"); p.setAttribute("aria-label",u.name); gP.append(p); PATHS[u.uf]=p;});
+const rsl=document.createElementNS(SVGNS,"path"); rsl.setAttribute("d",BRMAP.paths.RS); rsl.setAttribute("class","rsline"); gP.append(rsl);
+const SMALL=new Set(["DF","SE","AL","PB","RN","PE","ES","RJ"]);
+const NUDGE={GO:[6,10],PA:[0,8],MA:[4,6],BA:[0,0],MG:[6,4],AM:[0,0],SC:[2,0],PI:[2,6]};
+const VB=BRMAP.viewBox.split(" ").map(Number); svg.setAttribute("viewBox",`0 0 ${VB[2]+92} ${VB[3]}`);
+const gC=document.createElementNS(SVGNS,"g"); svg.append(gC);
+const VALS={}, CALLV={}; let LAID=false;
+const mk=(tag,at)=>{const e=document.createElementNS(SVGNS,tag); for(const k in at) e.setAttribute(k,at[k]); return e;};
+function callout(k,cx,cy,tx,ty){ gC.append(mk("line",{x1:cx,y1:cy,x2:tx-2,y2:ty-3.5,class:"lead"}));
+  const t=mk("text",{x:tx,y:ty,"text-anchor":"start",class:"call"}); const a=mk("tspan",{}); a.textContent=k+" "; const v=mk("tspan",{class:"cv"});
+  t.append(a,v); t.style.fill="var(--ink)"; t.style.stroke="var(--surface)"; gC.append(t); CALLV[k]=v; }
+function layoutLabels(){ if(LAID) return; if(!PATHS.SP.getBBox().width) return; LAID=true;
+  UF.forEach(u=>{ if(SMALL.has(u.uf)) return; const b=PATHS[u.uf].getBBox(), n=NUDGE[u.uf]||[0,0], x=b.x+b.width/2+n[0], y=b.y+b.height/2+n[1];
+    const t=mk("text",{x,y:y-0.5,"text-anchor":"middle"}); t.textContent=u.uf; if(u.uf==="RS") t.classList.add("rs"); gL.append(t); LABELS[u.uf]=t;
+    const v=mk("text",{x,y:y+(u.uf==="RS"?13.5:11.5),"text-anchor":"middle",class:"val"+(u.uf==="RS"?" rs":"")}); gL.append(v); VALS[u.uf]=v; });
+  const bb=k=>{const b=PATHS[k].getBBox(); return {k,b,cx:b.x+b.width/2,cy:b.y+b.height/2};};
+  const R=["RN","PB","PE","AL","SE"].map(bb).sort((a,b)=>a.cy-b.cy); let yy=-1e9;
+  R.forEach(o=>{o.ty=Math.max(o.cy+3,yy+20); yy=o.ty; callout(o.k,o.cx+(o.k==="PE"?18:0),o.cy,VB[2]+8,o.ty);});
+  const es=bb("ES"); callout("ES",es.cx,es.cy,es.b.x+es.b.width+10,es.cy+3);
+  const rj=bb("RJ"); callout("RJ",rj.cx,rj.cy,rj.b.x+rj.b.width+8,rj.b.y+rj.b.height+8);
+  const df=bb("DF"); callout("DF",df.cx,df.cy,df.cx+14,df.cy-9); }
+function hex2rgb(h){h=h.trim().replace("#","");if(h.length===3)h=h.split("").map(x=>x+x).join("");return [0,2,4].map(k=>parseInt(h.substr(k,2),16)/255);}
+const lin=c=>c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4), gam=c=>c<=0.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-0.055;
+function toLab(h){const [r,g,b]=hex2rgb(h).map(lin);
+  const l=Math.cbrt(0.4122214708*r+0.5363325363*g+0.0514459929*b), m=Math.cbrt(0.2119034982*r+0.6806995451*g+0.1073969566*b), s=Math.cbrt(0.0883024619*r+0.2817188376*g+0.6299787005*b);
+  return [0.2104542553*l+0.793617785*m-0.0040720468*s, 1.9779984951*l-2.428592205*m+0.4505937099*s, 0.0259040371*l+0.7827717662*m-0.808675766*s];}
+function fromLab([L,a,b]){const l=(L+0.3963377774*a+0.2158037573*b)**3, m=(L-0.1055613458*a-0.0638541728*b)**3, s=(L-0.0894841775*a-1.291485548*b)**3;
+  const rgb=[4.0767416621*l-3.3077115913*m+0.2309699292*s,-1.2684380046*l+2.6097574011*m-0.3413193965*s,-0.0041960863*l-0.7034186147*m+1.707614701*s];
+  return "rgb("+rgb.map(x=>Math.round(Math.min(1,Math.max(0,gam(x)))*255)).join(",")+")";}
+
+let STOPS=null, SEQ=null;
+function readStops(){const cs=getComputedStyle(document.documentElement);
+  STOPS=["--m-n2","--m-n1","--m-0","--m-p1","--m-p2"].map(k=>toLab(cs.getPropertyValue(k)||"#888"));
+  SEQ=["--q0","--q1"].map(k=>toLab(cs.getPropertyValue(k)||"#888"));}
+function colorAt(t){ t=Math.max(-1,Math.min(1,t)); const x=(t+1)*2, k=Math.min(3,Math.floor(x)), f=x-k;
+  const A=STOPS[k],B=STOPS[k+1]; return fromLab([A[0]+(B[0]-A[0])*f,A[1]+(B[1]-A[1])*f,A[2]+(B[2]-A[2])*f]); }
+function seqLab(t){t=Math.max(0,Math.min(1,t)); const [A,B]=SEQ; return [A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t];}
+function renderMap(v,dpp,dr){
+  if(!STOPS) readStops(); layoutLabels();
+  const st=S.stage; $("mopts").hidden=st===0;
+  let fill, ink, txt;
+  if(st===0){ const mx=Math.max(...REF), tt=i=>Math.sqrt(REF[i]/mx);
+    fill=i=>fromLab(seqLab(tt(i))); ink=i=>seqLab(tt(i))[0]<0.6?"#ffffff":"#121a17"; txt=i=>f2.format(REF[i]*100);
+    $("ramp").style.background="linear-gradient(90deg,"+[0,.25,.5,.75,1].map(t=>fromLab(seqLab(t))).join(",")+")";
+    $("rMin").textContent="0%"; $("rMid").textContent=pct(mx/4,1); $("rMax").textContent=pct(mx,1);
+    $("rCap").innerHTML="<span>fatia menor</span><span>fatia maior</span>";
+    let gi=0,li=0; REF.forEach((x,i)=>{if(x>REF[gi]) gi=i; if(x<REF[li]) li=i;});
+    const row=(l,i)=>`<span class="sw" style="background:${fill(i)}"></span><span>${l}: ${UF[i].name}</span><b>${pct(REF[i],2)}</b>`;
+    $("extremes").innerHTML=row("Maior fatia",gi)+row("Menor fatia",li)+row("RS",iRS);
+    $("mNote").textContent="Números em cada estado: fatia do FPE de 2027 pela regra atual, em %. A cor usa a raiz da fatia para que os estados pequenos também apareçam.";
+  } else {
+    const vv=MS.metric==="pp"?dpp:dr, maxA=MS.scale==="fixed"?FIX[MS.metric]:Math.max(1e-9,...vv.map(Math.abs));
+    const t=i=>Math.abs(dpp[i])<=TOL?0:vv[i]/maxA;
+    fill=i=>colorAt(t(i)); ink=i=>{const x=Math.max(-1,Math.min(1,t(i))),y=(x+1)*2,k=Math.min(3,Math.floor(y)),f=y-k; return (STOPS[k][0]+(STOPS[k+1][0]-STOPS[k][0])*f)<0.6?"#ffffff":"#121a17";};
+    txt=i=>{ if(Math.abs(dpp[i])<=TOL) return MS.metric==="pp"?"0,00":"0%"; const x=vv[i],sg=x>0?"+":"−",a=Math.abs(x)*100; return MS.metric==="pp"?sg+f2.format(a):sg+(a>=9.95?f0:f1).format(a)+"%";};
+    $("ramp").style.background="linear-gradient(90deg,"+[-1,-.75,-.5,-.25,0,.25,.5,.75,1].map(colorAt).join(",")+")";
+    const fmt=MS.metric==="pp"?(x=>f2.format(x*100)+" p.p."):(x=>f0.format(x*100)+"%"), sat=MS.scale==="fixed";
+    $("rMin").textContent=(sat?"≤ −":"−")+fmt(maxA); $("rMid").textContent="0"; $("rMax").textContent=(sat?"≥ +":"+")+fmt(maxA);
+    $("rCap").innerHTML="<span>perde mais</span><span>igual</span><span>ganha mais</span>";
+    let gi=0,li=0; dr.forEach((x,i)=>{if(x>dr[gi]) gi=i; if(x<dr[li]) li=i;});
+    const row=(l,i)=>`<span class="sw" style="background:${fill(i)}"></span><span>${l}: ${UF[i].name}</span><b class="${cls(dpp[i])}">${MS.metric==="pp"?pp(dpp[i],2)+" p.p.":rel(v[i],REF[i])}</b>`;
+    $("extremes").innerHTML=row("Maior ganho",gi)+row("Maior perda",li)+row("RS",iRS);
+    const over=sat?vv.filter(x=>Math.abs(x)>maxA).length:0;
+    $("mNote").textContent=sat?`Escala fixa em ±${fmt(maxA)} para comparar as etapas.${over?` ${over} UF${over>1?"s passam":" passa"} do limite e aparece${over>1?"m":""} na cor mais forte.`:""}`:"Escala ajustada: a UF com maior variação recebe a cor mais forte.";
+    $("mMetric").value=MS.metric; $("mScale").value=MS.scale;
+  }
+  UF.forEach((u,i)=>{ PATHS[u.uf].style.fill=fill(i); const k=ink(i), stc=k==="#ffffff"?"rgba(0,0,0,.35)":"rgba(255,255,255,.55)";
+    if(LABELS[u.uf]){LABELS[u.uf].style.fill=k; LABELS[u.uf].style.stroke=stc;}
+    if(VALS[u.uf]){VALS[u.uf].textContent=txt(i); VALS[u.uf].style.fill=k; VALS[u.uf].style.stroke=stc;}
+    if(CALLV[u.uf]) CALLV[u.uf].textContent=txt(i); });
+}
+$("mMetric").addEventListener("change",()=>{MS.metric=$("mMetric").value;try{localStorage.setItem("fpe-proposta-map",JSON.stringify(MS))}catch(e){};update();});
+$("mScale").addEventListener("change",()=>{MS.scale=$("mScale").value;try{localStorage.setItem("fpe-proposta-map",JSON.stringify(MS))}catch(e){};update();});
+const reTheme=()=>{STOPS=null; if(last) update();};
+try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",reTheme);}catch(e){}
+new MutationObserver(reTheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+const mapEl=$("map");
+mapEl.addEventListener("mousemove",e=>{const p=e.target.closest("path.st"); if(p) showTip(p,e.clientX,e.clientY); else tip.hidden=true;});
+mapEl.addEventListener("mouseleave",()=>tip.hidden=true);
+mapEl.addEventListener("focusin",e=>{const p=e.target.closest("path.st"); if(p){const r=p.getBoundingClientRect(); showTip(p,r.right,r.top);}});
+mapEl.addEventListener("focusout",()=>tip.hidden=true);
+update();
+})();
+</script>
+
+</body></html>
