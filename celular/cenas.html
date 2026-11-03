@@ -257,6 +257,21 @@ h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
 .sitenav .files{display:flex;flex-wrap:wrap;gap:8px}
 .sitenav .files a{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:5px 10px;color:var(--ink)}
 .sitenav .files a:hover{border-color:var(--accent);text-decoration:none}
+
+/* cena 4: mini mapa na coluna do texto */
+.narr-inner{flex:1 1 auto}.facts:empty{display:none}
+.mini{flex:1 1 0;min-height:220px;display:flex;flex-direction:column;gap:8px;opacity:0;transition:opacity .6s ease}
+.mini .mm{flex:1 1 0;min-height:0;position:relative}
+.mini .mm svg{position:absolute;inset:0;width:100%;height:100%}
+@media (max-width:900px){.mini{flex:none;min-height:0}.mini .mm{flex:none;position:static}.mini .mm svg{position:static;height:auto;max-height:440px}}
+.mini.on{opacity:1}
+.mini path.st{stroke:var(--m-stroke);stroke-width:.9;stroke-linejoin:round}
+.mini path.rsline{fill:none;stroke:var(--rs);stroke-width:2.8}
+.mini text{font-family:var(--f-mono);font-size:22px;font-weight:600;paint-order:stroke;stroke-width:2.6px;stroke-linejoin:round}
+.mini text.val{font-size:20px}
+.mini line.lead{stroke:var(--ink-3);stroke-width:.8}
+.mini text.call{font-size:20px;stroke-width:3px}
+.mini .mleg{max-width:420px}
 </style>
 
 <style>
@@ -573,7 +588,7 @@ const SCENES=[
  {t:"Hoje o bolo é cortado em duas partes",lead:"Quase dois terços do FPE ainda seguem fatias fixadas em <b>1989</b>, que nunca foram atualizadas. Só o restante segue a fórmula de população e renda criada em <b>2013</b>.",layer:"split",dur:10000,src:"Coeficientes estimados para 2027 com base no estudo da SEFAZ/PE (PLDO 2027): 64,43% do FPE pela parte fixa e 35,57% pela fórmula. Pela média que calculamos com os comunicados decendiais do Tesouro (out/2025 a out/2026, projetados para 2027), a parte fixa seria de 63,1% e o RS ficaria com 2,1253%, contra 2,1338% pela SEFAZ/PE: praticamente o mesmo valor.",
   facts:[["",{to:64.43,d:2,s:"%"},"pelas fatias fixas de 1989"],["",{to:35.57,d:2,s:"%"},"pela fórmula de 2013"]]},
  {t:"O Supremo marcou a data",lead:"Em junho de 2026, o STF manteve as regras atuais só até <b>30 de junho de 2027</b>, sem nova prorrogação. Se o Congresso não aprovar uma lei, todo o FPE passa a seguir apenas a fórmula de 2013, já a partir do 2º semestre de 2027.",layer:"clock",dur:13000,
-  facts:[["rs",{to:SP.dHalf,d:0,s:" mi",pre:"R$ ",delay:4400},"a menos para o RS já em 2027"],["rs",{to:SP.dFull,d:0,s:" mi",pre:"R$ ",delay:4800},"a menos para o RS a cada ano, a partir de 2028"],["",{to:losersNada,d:0,s:""},"estados perdem nesse cenário"]]},
+  facts:[],mini:1},
  {t:"O problema: um desconto que pune duas vezes",lead:"A fórmula soma <b>metade pela população</b> e <b>metade pela renda</b>. Estados de renda mais alta recebem um desconto. Hoje esse desconto corta a fatia inteira, inclusive a parte da população. Mas a população não diminui porque o estado é mais rico.",layer:"recipe",dur:14000,
   facts:[["rs",{to:LAW.raw[iRS]*100,d:2,s:"%",delay:2600},"RS hoje: desconto nas duas metades"],["rs",{to:NEW.raw[iRS]*100,d:2,s:"%",delay:6900},"RS na proposta: desconto só na renda"]]},
  {t:"Sozinha, a fórmula corrigida mudaria demais",lead:"Aplicada de uma vez, sem proteção, a fórmula corrigida traria ganhos enormes para uns e perdas que nenhum orçamento estadual aguenta de um ano para o outro.",layer:"map",map:"pura",cap:"Só a fórmula nova × regra atual de 2027",dur:10000,
@@ -685,15 +700,40 @@ function buildHemi(){
   later(400,()=>{count($("hSv"),47,v=>f0.format(v),2600); count($("hDv"),263,v=>f0.format(v),3800);});
 }
 
+// ---------- mini mapa da cena 4: se nada for aprovado, ano inteiro ----------
+function miniMap(host){ if(!ST) stops();
+  const sv=mk("svg",{viewBox:`0 0 ${VB[2]+118} ${VB[3]}`,preserveAspectRatio:"xMinYMid meet",role:"img","aria-label":"Mapa: variação da fatia de cada estado se nada for aprovado, em um ano inteiro"});
+  const gp=mk("g",{}), gl=mk("g",{}), gc=mk("g",{}); sv.append(gp,gl,gc); host.append(sv);
+  const vtx=i=>{const d=(EXC[i]/REF[i]-1)*100; if(Math.abs(EXC[i]-REF[i])<=TOL) return "0%"; return (d>0?"+":"−")+(Math.abs(d)>=9.95?f0:f1).format(Math.abs(d))+"%";};
+  const ink=L=>L[0]<.6?"#ffffff":"#121a17", stc=c=>c==="#ffffff"?"rgba(0,0,0,.35)":"rgba(255,255,255,.55)";
+  const P={};
+  UF.forEach((u,i)=>{const L=Math.abs(EXC[i]-REF[i])<=TOL?div(0):div((EXC[i]/REF[i]-1)/0.15);
+    const p=mk("path",{d:BRMAP.paths[u.uf],class:"st"}); p.style.fill=fromLab(L); gp.append(p); P[u.uf]={p,L,i};});
+  gp.append(mk("path",{d:BRMAP.paths[UF[iRS].uf],class:"rsline"}));
+  UF.forEach(u=>{ if(SMALLM.has(u.uf)) return; const o=P[u.uf], b=o.p.getBBox(), n=({...NUDGE,BA:[16,-22],SC:[10,0],MA:[-8,8],PI:[8,12]})[u.uf]||[0,0], x=b.x+b.width/2+n[0], y=b.y+b.height/2+n[1], c=ink(o.L);
+    const t=mk("text",{x,y:y-1,"text-anchor":"middle"}); t.textContent=u.uf;
+    const v=mk("text",{x,y:y+19,"text-anchor":"middle",class:"val"}); v.textContent=vtx(o.i);
+    [t,v].forEach(e=>{e.style.fill=c; e.style.stroke=stc(c); gl.append(e);}); });
+  const call=(k,cx,cy,tx,ty)=>{gc.append(mk("line",{x1:cx,y1:cy,x2:tx-2,y2:ty-4.5,class:"lead"})); const t=mk("text",{x:tx,y:ty,class:"call"});
+    t.textContent=k+" "+vtx(IDX[k]); t.style.fill="var(--ink)"; t.style.stroke="var(--surface)"; gc.append(t);};
+  const bb=k=>{const b=P[k].p.getBBox(); return {k,b,cx:b.x+b.width/2,cy:b.y+b.height/2};};
+  let yy=-1e9; ["RN","PB","PE","AL","SE"].map(bb).sort((a,b)=>a.cy-b.cy).forEach(o=>{o.ty=Math.max(o.cy+4,yy+25); yy=o.ty; call(o.k,o.cx+(o.k==="PE"?18:0),o.cy,VB[2]+8,o.ty);});
+  const es=bb("ES"); call("ES",es.cx,es.cy,es.b.x+es.b.width+10,es.cy+4);
+  const rj=bb("RJ"); call("RJ",rj.cx,rj.cy,rj.b.x+rj.b.width+8,rj.b.y+rj.b.height+12);
+  const df=bb("DF"); call("DF",df.cx,df.cy,df.cx+14,df.cy-10);
+}
+const miniHTML=()=>`<div class="mini" id="mini"><div class="vcap">Se nada for aprovado, em um ano inteiro: variação × regra atual</div><div class="mm"></div></div>`;
+
 // ---------- narrativa ----------
 function renderNarr(s,k){
   const box=$("narr");
   const factHTML=s.facts.map((f,j)=>{const isN=typeof f[1]==="object"; return `<div class="fact ${f[0]}" data-j="${j}"><span class="v" data-v="${j}">${isN?"":f[1]}</span><span class="l">${f[2]}</span></div>`;}).join("");
-  box.innerHTML=`<span class="scene-no">${String(k+1).padStart(2,"0")} / ${SCENES.length}</span><h2>${s.t}</h2><p class="lead" style="margin:0">${s.lead}</p><div class="facts">${factHTML}</div>${s.note?`<div class="note" id="note"><b>Uma comparação.</b> ${s.note}</div>`:""}${s.src?`<p class="srcn">${s.src}</p>`:""}`;
+  box.innerHTML=`<span class="scene-no">${String(k+1).padStart(2,"0")} / ${SCENES.length}</span><h2>${s.t}</h2><p class="lead" style="margin:0">${s.lead}</p><div class="facts">${factHTML}</div>${s.mini?miniHTML():""}${s.note?`<div class="note" id="note"><b>Uma comparação.</b> ${s.note}</div>`:""}${s.src?`<p class="srcn">${s.src}</p>`:""}`;
   s.facts.forEach((f,j)=>{const d=(f[1]&&f[1].delay)||0; later(600+j*900+d,()=>{const el=box.querySelector(`[data-j="${j}"]`); el.classList.add("on");
     if(typeof f[1]==="object"){const o=f[1], v=box.querySelector(`[data-v="${j}"]`); count(v,o.to,x=>(o.sign&&x>0?"+":"")+(x<0?"−":"")+(o.pre||"")+nf(o.d).format(Math.abs(x))+o.s,1300);
       if(o.sign) v.classList.add(o.to>0?"pos":"neg");}});});
   if(s.note) later(5200,()=>$("note")&&$("note").classList.add("on"));
+  if(s.mini){ miniMap($("mini").querySelector(".mm")); later(500,()=>$("mini")&&$("mini").classList.add("on")); }
 }
 
 // ---------- reprodução ----------
